@@ -11,17 +11,41 @@ const RightSidebar: React.FC = () => {
     { id: 3, src: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop&crop=center', alt: 'Person with protest sign' }
   ];
 
+  const handleCampaignSuggestion = () => {
+    alert('Campaign Suggestion clicked!');
+  };
+
+  const handleOtherOptions = () => {
+    alert('Other Options clicked!');
+  };
+
+  const handleRefresh = () => {
+    alert('Refresh clicked!');
+  };
+
+  const handleUndo = () => {
+    alert('Undo clicked!');
+  };
+
+  const handleCopyImage = (imageIndex: number) => {
+    alert(`Copy image ${imageIndex + 1} clicked!`);
+  };
+
+  const handleCopyText = () => {
+    alert('Copy text clicked!');
+  };
+
   return (
     <div className="right-sidebar">
       {/* Top Action Buttons */}
       <div className="top-actions">
         <div className="left-buttons">
-          <button className="action-button primary">Campaign Suggestion</button>
-          <button className="action-button secondary">Other Options</button>
+          <button className="action-button primary" onClick={handleCampaignSuggestion}>Campaign Suggestion</button>
+          <button className="action-button secondary" onClick={handleOtherOptions}>Other Options</button>
         </div>
         <div className="right-buttons">
-          <button className="action-button icon">↻</button>
-          <button className="action-button secondary">Undo</button>
+          <button className="action-button icon" onClick={handleRefresh}>↻</button>
+          <button className="action-button secondary" onClick={handleUndo}>Undo</button>
         </div>
       </div>
       {/* Image Carousel */}
@@ -33,7 +57,7 @@ const RightSidebar: React.FC = () => {
               className={`carousel-slide ${index === currentImageIndex ? 'active' : ''}`}
             >
               <img src={image.src} alt={image.alt} />
-              <button className="copy-btn">📋</button>
+              <button className="copy-btn" onClick={() => handleCopyImage(index)}>📋</button>
             </div>
           ))}
         </div>
@@ -81,7 +105,7 @@ const RightSidebar: React.FC = () => {
             />
           ))}
         </div>
-        <button className="bottom-copy-btn">📋</button>
+        <button className="bottom-copy-btn" onClick={handleCopyText}>📋</button>
       </div>
     </div>
   );

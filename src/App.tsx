@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Header from './components/Header';
 import SearchBar from './components/SearchBar';
 import Sidebar from './components/Sidebar';
@@ -6,14 +6,51 @@ import MainContent from './components/MainContent';
 import RightSidebar from './components/RightSidebar';
 import './App.css';
 
+interface ApiResponse {
+  ok: boolean;
+  facts: string[];
+  causes: string[];
+  failed_urls: string[];
+  source_count: number;
+  deduped: boolean;
+  job_id: string;
+  phase: string;
+  error?: any;
+}
+
 function App() {
+  const [storyFacts, setStoryFacts] = useState<string[]>([]);
+  const [chunkFacts, setChunkFacts] = useState<string[]>([]);
+  const [chunkFactsReady, setChunkFactsReady] = useState<boolean>(false);
+
+  const handleFactsExtracted = (response: ApiResponse) => {
+    if (response.ok && response.facts) {
+      setStoryFacts(response.facts);
+      // Reset chunk facts state when new story facts are received
+      setChunkFacts([]);
+      setChunkFactsReady(false);
+    }
+  };
+
+  const handleChunkFactsReady = (facts: string[]) => {
+    setChunkFacts(facts);
+    setChunkFactsReady(true);
+  };
+
   return (
     <div className="app">
       <Header />
-      <SearchBar />
+      <SearchBar
+        onFactsExtracted={handleFactsExtracted}
+        onChunkFactsReady={handleChunkFactsReady}
+      />
       <div className="app-body">
         <Sidebar />
-        <MainContent />
+        <MainContent
+          storyFacts={storyFacts}
+          chunkFacts={chunkFacts}
+          chunkFactsReady={chunkFactsReady}
+        />
         <RightSidebar />
       </div>
     </div>

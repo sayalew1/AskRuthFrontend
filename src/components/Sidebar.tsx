@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Sidebar.css';
 
 const Sidebar: React.FC = () => {
+  const [activeCategory, setActiveCategory] = useState(0);
+
   const categories = [
     { name: 'All', active: true },
     { name: "Women's Rights", active: false },
@@ -10,11 +12,28 @@ const Sidebar: React.FC = () => {
     { name: 'Economy', active: false }
   ];
 
+  const handleCategoryClick = (index: number) => {
+    setActiveCategory(index);
+  };
+
+  const handleShareClick = (campaignTitle: string) => {
+    alert(`Share ${campaignTitle} clicked!`);
+  };
+
+  // Get current date in MM/DD/YYYY format
+  const getCurrentDate = () => {
+    const now = new Date();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const year = now.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
   const campaigns = [
     {
       id: 1,
       title: 'United States Horoscope',
-      subtitle: '11/30/2025',
+      subtitle: getCurrentDate(),
       image: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop&crop=center',
       category: '',
       bgColor: '#0891b2',
@@ -57,9 +76,10 @@ const Sidebar: React.FC = () => {
     <div className="sidebar">
       <div className="categories">
         {categories.map((category, index) => (
-          <button 
+          <button
             key={index}
-            className={`category-btn ${category.active ? 'active' : ''}`}
+            className={`category-btn ${activeCategory === index ? 'active' : ''}`}
+            onClick={() => handleCategoryClick(index)}
           >
             {category.name}
           </button>
@@ -79,7 +99,7 @@ const Sidebar: React.FC = () => {
                     <h4>{campaign.title}</h4>
                     {campaign.subtitle && <p>{campaign.subtitle}</p>}
                   </div>
-                  <button className="share-btn">↗</button>
+                  <button className="share-btn" onClick={() => handleShareClick(campaign.title)}>↗</button>
                 </div>
                 <div className="campaign-image-container">
                   <img src={campaign.image} alt={campaign.title} className={`campaign-image ${campaign.title === 'United States Horoscope' ? 'horoscope-image' : ''}`} />
@@ -98,7 +118,7 @@ const Sidebar: React.FC = () => {
                     <h4>{campaign.title}</h4>
                     {campaign.subtitle && <p>{campaign.subtitle}</p>}
                   </div>
-                  <button className="share-btn">↗</button>
+                  <button className="share-btn" onClick={() => handleShareClick(campaign.title)}>↗</button>
                 </div>
                 <div className="small-campaign-content">
                   <img src={campaign.image} alt={campaign.title} className="small-campaign-image" />
