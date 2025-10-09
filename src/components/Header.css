@@ -1,0 +1,44 @@
+.header {
+  background-color: #f8f5f0;
+  padding: 12px 0;
+}
+
+.header-content {
+  width: 95%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 20px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.logo-text {
+  font-weight: bold;
+  font-size: 18px;
+  color: #333;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    justify-content: center;
+  }
+}

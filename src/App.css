@@ -1,0 +1,26 @@
+.app {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f8f5f0;
+}
+
+.app-body {
+  display: flex;
+  width: 95%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Responsive layout */
+@media (max-width: 1024px) {
+  .app-body {
+    flex-direction: column;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-body {
+    gap: 10px;
+  }
+}

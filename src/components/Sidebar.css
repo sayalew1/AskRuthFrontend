@@ -1,0 +1,200 @@
+.sidebar {
+  flex: 0 0 302px;
+  background-color: transparent;
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  margin-right: 8px;
+  margin-left: -20px;
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.category-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background-color: #f5f4f0;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.category-btn.active {
+  background-color: #8b7355;
+  color: white;
+}
+
+.category-btn:hover {
+  background-color: #e8e5e0;
+}
+
+.campaigns {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.campaign-card {
+  background-color: white;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.campaign-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.large-card {
+  padding: 0;
+}
+
+.small-card {
+  padding: 16px;
+}
+
+.state-card {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.state-card:hover {
+  box-shadow: none !important;
+}
+
+.large-campaign .campaign-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 0;
+}
+
+.small-campaign .campaign-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.campaign-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.campaign-info {
+  flex: 1;
+}
+
+.campaign-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.3;
+}
+
+.campaign-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.share-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.share-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.campaign-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+}
+
+.campaign-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.horoscope-image {
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.campaign-category-overlay {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background-color: rgba(55, 65, 81, 0.9);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.small-campaign-content {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.small-campaign-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.campaign-description {
+  flex: 1;
+}
+
+.description-text {
+  margin: 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    flex: 1;
+    margin-bottom: 20px;
+  }
+}
