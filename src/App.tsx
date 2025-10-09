@@ -22,6 +22,7 @@ function App() {
   const [storyFacts, setStoryFacts] = useState<string[]>([]);
   const [chunkFacts, setChunkFacts] = useState<string[]>([]);
   const [chunkFactsReady, setChunkFactsReady] = useState<boolean>(false);
+  const [chunkFactsData, setChunkFactsData] = useState<any>(null);
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
@@ -29,12 +30,14 @@ function App() {
       // Reset chunk facts state when new story facts are received
       setChunkFacts([]);
       setChunkFactsReady(false);
+      setChunkFactsData(null);
     }
   };
 
-  const handleChunkFactsReady = (facts: string[]) => {
+  const handleChunkFactsReady = (facts: string[], fullData: any) => {
     setChunkFacts(facts);
     setChunkFactsReady(true);
+    setChunkFactsData(fullData);
   };
 
   return (
@@ -50,6 +53,7 @@ function App() {
           storyFacts={storyFacts}
           chunkFacts={chunkFacts}
           chunkFactsReady={chunkFactsReady}
+          chunkFactsData={chunkFactsData}
         />
         <RightSidebar />
       </div>

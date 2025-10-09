@@ -15,7 +15,7 @@ interface ApiResponse {
 
 interface SearchBarProps {
   onFactsExtracted: (response: ApiResponse) => void;
-  onChunkFactsReady: (facts: string[]) => void;
+  onChunkFactsReady: (facts: string[], fullData: any) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsReady }) => {
@@ -99,7 +99,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
         if (data.ok) {
           if (data.status === 'done' && data.chunk_facts && data.chunk_facts.facts) {
 
-            onChunkFactsReady(data.chunk_facts.facts);
+            onChunkFactsReady(data.chunk_facts.facts, data);
             return;
           } else if (data.status === 'error') {
 

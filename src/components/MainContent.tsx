@@ -5,15 +5,18 @@ interface MainContentProps {
   storyFacts: string[];
   chunkFacts: string[];
   chunkFactsReady: boolean;
+  chunkFactsData: any;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData }) => {
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
   const [activeSocialChannel, setActiveSocialChannel] = React.useState(0);
   const [activeActionButton, setActiveActionButton] = React.useState(0);
   const [activeCharacteristic, setActiveCharacteristic] = React.useState(0);
   const [showAllFacts, setShowAllFacts] = React.useState(false);
+  const [campaignResponse, setCampaignResponse] = React.useState<any>(null);
+  const [isCreatingCampaign, setIsCreatingCampaign] = React.useState(false);
 
   // Automatically select "Story Facts" tab when facts are received from API
   useEffect(() => {
@@ -42,8 +45,39 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     'Adversarial', 'Diplomatic', 'Empowered'
   ];
 
-  const handleCreateCampaign = () => {
-    alert('Create Campaign clicked!');
+  const handleCreateCampaign = async () => {
+    if (!chunkFactsData || !isCreateCampaignEnabled()) return;
+
+    setIsCreatingCampaign(true);
+    try {
+      // Map the selected options to the expected format
+      const socialChannelMap = ['Plain Text', 'Instagram', 'Facebook', 'Blue Sky'];
+      const goalMap = ['donate', 'spread', 'protest', 'contact'];
+      const voiceMap = ['Charismatic', 'Logical', 'Passionate', 'Empathetic', 'Strategic', 'Adversarial', 'Diplomatic', 'Empowered'];
+
+      const requestBody = {
+        url_facts: chunkFactsData.url_facts || storyFacts,
+        req_facts: chunkFactsData.chunk_facts?.facts || chunkFacts,
+        personality_type: voiceMap[activeCharacteristic].toLowerCase().replace(' ', '_'),
+        call_to_action_type: goalMap[activeActionButton],
+        by_cause: chunkFactsData.chunk_facts?.by_cause || {}
+      };
+
+      const response = await fetch('http://localhost:8000/api/generate-from-facts/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      setCampaignResponse(data);
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+    } finally {
+      setIsCreatingCampaign(false);
+    }
   };
 
   // Check if Create Campaign button should be enabled
@@ -204,11 +238,76 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           <button
             className={`create-btn ${!isCreateCampaignEnabled() ? 'disabled' : ''}`}
             onClick={handleCreateCampaign}
-            disabled={!isCreateCampaignEnabled()}
+            disabled={!isCreateCampaignEnabled() || isCreatingCampaign}
           >
-            Create Campaign ✨
+            {isCreatingCampaign ? 'Creating Campaign...' : 'Create Campaign ✨'}
           </button>
         </div>
+
+        {campaignResponse && (
+          <div className="campaign-response">
+            <div className="campaign-response-header">
+              <h3>🎯 Campaign Generated Successfully!</h3>
+              <button
+                className="close-response-btn"
+                onClick={() => setCampaignResponse(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="campaign-response-content">
+              {campaignResponse.url_facts && (
+                <div className="response-section">
+                  <h4>📰 Story Facts</h4>
+                  <ul className="response-facts-list">
+                    {campaignResponse.url_facts.map((fact: string, index: number) => (
+                      <li key={index}>{fact}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {campaignResponse.req_facts && (
+                <div className="response-section">
+                  <h4>🔍 Related Facts</h4>
+                  <ul className="response-facts-list">
+                    {campaignResponse.req_facts.map((fact: string, index: number) => (
+                      <li key={index}>{fact}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="response-section">
+                <h4>⚙️ Campaign Settings</h4>
+                <div className="campaign-settings">
+                  <div className="setting-item">
+                    <span className="setting-label">Goal:</span>
+                    <span className="setting-value">{campaignResponse.goal || 'Not specified'}</span>
+                  </div>
+                  <div className="setting-item">
+                    <span className="setting-label">Personality:</span>
+                    <span className="setting-value">{campaignResponse.personality_type || 'Not specified'}</span>
+                  </div>
+                  {campaignResponse.by_cause && Object.keys(campaignResponse.by_cause).length > 0 && (
+                    <div className="setting-item">
+                      <span className="setting-label">By Cause:</span>
+                      <div className="cause-mapping">
+                        {Object.entries(campaignResponse.by_cause).map(([cause, facts]: [string, any]) => (
+                          <div key={cause} className="cause-item">
+                            <strong>{cause}:</strong>
+                            <span>{Array.isArray(facts) ? `${facts.length} facts` : facts}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
