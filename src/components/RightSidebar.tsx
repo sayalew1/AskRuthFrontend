@@ -124,7 +124,14 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
           {images.map((image, index) => (
             <div key={image.id} className={'carousel-slide ' + (index === currentImageIndex ? 'active' : '')}>
               <img src={image.src} alt={image.alt} />
-              <button className="copy-btn">Copy</button>
+              <button className="copy-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 2C3 1.44772 3.44772 1 4 1H9L13 5V13C13 13.5523 12.5523 14 12 14H4C3.44772 14 3 13.5523 3 13V2Z"
+                        fill="currentColor" stroke="currentColor" strokeWidth="0.5"/>
+                  <path d="M9 1V4C9 4.55228 9.44772 5 10 5H13"
+                        fill="none" stroke="currentColor" strokeWidth="0.5"/>
+                </svg>
+              </button>
             </div>
           ))}
         </div>
