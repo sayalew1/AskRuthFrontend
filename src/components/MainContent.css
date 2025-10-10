@@ -132,17 +132,6 @@
   box-shadow: 0 4px 8px rgba(139, 115, 85, 0.4);
 }
 
-.facts-container::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(135deg, #6b5540, #7a6449);
-  box-shadow: 0 2px 4px rgba(139, 115, 85, 0.5);
-}
-
-/* Firefox Scrollbar */
-.facts-container {
-  scrollbar-width: thin;
-  scrollbar-color: #8b7355 #f8f5f0;
-}
-
 .facts-list {
   list-style: none;
   padding: 0;
@@ -313,25 +302,25 @@
 
 .action-buttons-grid {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 20px;
 }
 
 .action-btn {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 20px;
+  padding: 8px 16px;
   background-color: transparent;
   color: #6b7280;
   font-size: 14px;
   font-weight: 500;
+  border-radius: 20px !important;
   cursor: pointer;
-  white-space: nowrap;
+  border: none;
+  transition: all 0.2s ease;
 }
 
 .action-btn:hover {
-  background-color: #f8f5f0;
+  background-color: #f8f5f0 !important;
 }
 
 .action-btn.active {

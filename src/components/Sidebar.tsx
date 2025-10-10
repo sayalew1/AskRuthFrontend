@@ -17,7 +17,7 @@ const Sidebar: React.FC = () => {
   };
 
   const handleShareClick = (campaignTitle: string) => {
-    alert(`Share ${campaignTitle} clicked!`);
+    // Handle share functionality
   };
 
   // Get current date in MM/DD/YYYY format
@@ -56,16 +56,6 @@ const Sidebar: React.FC = () => {
       subtitle: "Women's Rights",
       description: 'Carmen Cum sociis natoque penatibus et magnis dis parturient.',
       image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=60&h=60&fit=crop&crop=face',
-      bgColor: '#8b4513',
-      icon: '🏛',
-      hasLargeImage: false
-    },
-    {
-      id: 4,
-      title: 'Ohio',
-      subtitle: "Women's Rights",
-      description: 'Carmen Cum sociis natoque penatibus et magnis dis parturient.',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60&h=60&fit=crop&crop=face',
       bgColor: '#8b4513',
       icon: '🏛',
       hasLargeImage: false

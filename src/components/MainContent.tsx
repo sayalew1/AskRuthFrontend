@@ -6,9 +6,10 @@ interface MainContentProps {
   chunkFacts: string[];
   chunkFactsReady: boolean;
   chunkFactsData: any;
+  onVariationsGenerated?: (variations: any) => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated }) => {
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
   const [activeSocialChannel, setActiveSocialChannel] = React.useState(0);
@@ -88,7 +89,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         onVariationsGenerated(data.variations);
       }
     } catch (error) {
-      console.error('Error creating campaign:', error);
+      // Handle error silently
     } finally {
       setIsCreatingCampaign(false);
     }
@@ -258,88 +259,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           </button>
         </div>
 
-        {campaignResponse && (
-          <div className="campaign-response">
-            <div className="campaign-response-header">
-              <h3>🎯 Campaign Generated Successfully!</h3>
-              <button
-                className="close-response-btn"
-                onClick={() => setCampaignResponse(null)}
-              >
-                ×
-              </button>
-            </div>
 
-            <div className="campaign-response-content">
-              {campaignResponse.url_facts && (
-                <div className="response-section">
-                  <h4>📰 Story Facts</h4>
-                  <ul className="response-facts-list">
-                    {campaignResponse.url_facts.map((fact: string, index: number) => (
-                      <li key={index}>{fact}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {campaignResponse.req_facts && (
-                <div className="response-section">
-                  <h4>🔍 Related Facts</h4>
-                  <ul className="response-facts-list">
-                    {campaignResponse.req_facts.map((fact: string, index: number) => (
-                      <li key={index}>{fact}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="response-section">
-                <h4>⚙️ Campaign Settings</h4>
-                <div className="campaign-settings">
-                  <div className="setting-item">
-                    <span className="setting-label">Goal:</span>
-                    <span className="setting-value">{campaignResponse.goal || 'Not specified'}</span>
-                  </div>
-                  <div className="setting-item">
-                    <span className="setting-label">Personality:</span>
-                    <span className="setting-value">{campaignResponse.personality_type || 'Not specified'}</span>
-                  </div>
-                  {campaignResponse.by_cause && Object.keys(campaignResponse.by_cause).length > 0 && (
-                    <div className="setting-item">
-                      <span className="setting-label">By Cause:</span>
-                      <div className="cause-mapping">
-                        {Object.entries(campaignResponse.by_cause).map(([cause, facts]: [string, any]) => (
-                          <div key={cause} className="cause-item">
-                            <strong>{cause}:</strong>
-                            <span>{Array.isArray(facts) ? `${facts.length} facts` : facts}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Raw Response Section */}
-              <div className="response-section">
-                <h4>🔍 Complete API Response</h4>
-                <div className="raw-response">
-                  <pre style={{
-                    background: '#f5f5f5',
-                    padding: '15px',
-                    borderRadius: '8px',
-                    overflow: 'auto',
-                    maxHeight: '400px',
-                    fontSize: '12px',
-                    border: '1px solid #ddd'
-                  }}>
-                    {JSON.stringify(campaignResponse, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
