@@ -53,13 +53,22 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       // Map the selected options to the expected format
       const socialChannelMap = ['Plain Text', 'Instagram', 'Facebook', 'Blue Sky'];
       const goalMap = ['donate', 'spread', 'protest', 'contact'];
-      const voiceMap = ['Charismatic', 'Logical', 'Passionate', 'Empathetic', 'Strategic', 'Adversarial', 'Diplomatic', 'Empowered'];
+      const voiceToPersonalityMap = [
+        'charismatic_leader',      // Charismatic
+        'logical_analyst',         // Logical
+        'passionate_advocate',     // Passionate
+        'empathetic_connector',    // Empathetic
+        'pragmatic_strategist',    // Strategic
+        'fearless_challenger',     // Adversarial
+        'diplomatic_peacemaker',   // Diplomatic
+        'resilient_survivor'       // Empowered
+      ];
 
       const requestBody = {
         url_facts: chunkFactsData.url_facts || storyFacts,
-        req_facts: chunkFactsData.chunk_facts?.facts || chunkFacts,
-        personality_type: voiceMap[activeCharacteristic].toLowerCase().replace(' ', '_'),
-        call_to_action_type: goalMap[activeActionButton],
+        rag_facts: chunkFactsData.chunk_facts?.facts || chunkFacts,
+        personality_type: voiceToPersonalityMap[activeCharacteristic],
+        goal: goalMap[activeActionButton],
         by_cause: chunkFactsData.chunk_facts?.by_cause || {}
       };
 
@@ -73,6 +82,11 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
       const data = await response.json();
       setCampaignResponse(data);
+
+      // Pass variations to parent component
+      if (data.ok && data.variations && onVariationsGenerated) {
+        onVariationsGenerated(data.variations);
+      }
     } catch (error) {
       console.error('Error creating campaign:', error);
     } finally {
@@ -303,6 +317,24 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Raw Response Section */}
+              <div className="response-section">
+                <h4>🔍 Complete API Response</h4>
+                <div className="raw-response">
+                  <pre style={{
+                    background: '#f5f5f5',
+                    padding: '15px',
+                    borderRadius: '8px',
+                    overflow: 'auto',
+                    maxHeight: '400px',
+                    fontSize: '12px',
+                    border: '1px solid #ddd'
+                  }}>
+                    {JSON.stringify(campaignResponse, null, 2)}
+                  </pre>
                 </div>
               </div>
             </div>

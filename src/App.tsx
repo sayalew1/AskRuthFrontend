@@ -23,6 +23,7 @@ function App() {
   const [chunkFacts, setChunkFacts] = useState<string[]>([]);
   const [chunkFactsReady, setChunkFactsReady] = useState<boolean>(false);
   const [chunkFactsData, setChunkFactsData] = useState<any>(null);
+  const [variations, setVariations] = useState<any>(null);
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
@@ -40,6 +41,10 @@ function App() {
     setChunkFactsData(fullData);
   };
 
+  const handleVariationsGenerated = (variationsData: any) => {
+    setVariations(variationsData);
+  };
+
   return (
     <div className="app">
       <Header />
@@ -54,8 +59,9 @@ function App() {
           chunkFacts={chunkFacts}
           chunkFactsReady={chunkFactsReady}
           chunkFactsData={chunkFactsData}
+          onVariationsGenerated={handleVariationsGenerated}
         />
-        <RightSidebar />
+        <RightSidebar variations={variations} />
       </div>
     </div>
   );
