@@ -4,6 +4,7 @@
   border-radius: 12px;
   padding: 20px;
   min-height: 800px;
+  max-height: 800px; /* Prevent sidebar from growing beyond this height */
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -11,6 +12,7 @@
   max-width: 560px;
   min-width: 0; /* Allow shrinking below content size */
   overflow-x: hidden; /* Prevent horizontal overflow */
+  overflow-y: hidden; /* Prevent vertical overflow of the entire sidebar */
 }
 
 /* Top Action Buttons */
@@ -165,6 +167,7 @@
   background: transparent;
   margin-bottom: 20px;
   min-height: 200px;
+  max-height: 500px; /* Limit maximum height to prevent layout expansion */
 }
 
 .additional-text-content p {
