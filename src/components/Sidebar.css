@@ -1,11 +1,16 @@
 .sidebar {
-  flex: 0 0 302px;
+  flex: 1;
   background-color: transparent;
   border-radius: 12px;
   padding: 20px;
-  height: fit-content;
+  min-height: 800px;
   margin-right: 8px;
   margin-left: -20px;
+  max-width: 302px;
+  min-width: 0; /* Allow shrinking below content size */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  display: flex;
+  flex-direction: column;
 }
 
 .categories {
@@ -13,6 +18,9 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .category-btn {
@@ -26,6 +34,10 @@
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  white-space: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .category-btn.active {
@@ -41,6 +53,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
 }
 
 .campaign-card {
@@ -196,5 +209,87 @@
   .sidebar {
     flex: 1;
     margin-bottom: 20px;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    padding: 16px;
+    margin-bottom: 16px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .categories {
+    gap: 6px;
+  }
+
+  .category-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .sidebar h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .sidebar h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .sidebar p {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .sidebar ul {
+    margin-bottom: 12px;
+  }
+
+  .sidebar li {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    padding: 12px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .categories {
+    gap: 4px;
+  }
+
+  .category-btn {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .sidebar h2 {
+    font-size: 15px;
+  }
+
+  .sidebar h3 {
+    font-size: 13px;
+  }
+
+  .sidebar p {
+    font-size: 11px;
+  }
+
+  .sidebar li {
+    font-size: 11px;
+  }
+}
+
+/* Additional responsive rules for very small screens */
+@media (max-width: 600px) {
+  .sidebar {
+    max-width: calc(100vw - 16px);
+    padding: 16px;
   }
 }

@@ -52,6 +52,8 @@ function App() {
   const handleUrlChanged = (url: string) => {
     setCurrentUrl(url);
     setSearchText(url); // Update search bar when URL changes
+    // Clear variations immediately when a new URL is being processed
+    setVariations(null);
   };
 
   const handleUrlSwitch = (url: string) => {

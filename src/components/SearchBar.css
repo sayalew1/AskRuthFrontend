@@ -251,12 +251,48 @@
   .search-bar-section {
     padding: 6px 0;
   }
-  
+
   .search-bar-container {
     padding: 0 15px;
   }
-  
+
   .search-container {
     padding: 10px 12px;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .search-input {
+    font-size: 14px;
+  }
+
+  .go-button {
+    width: 100%;
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-bar-container {
+    padding: 0 10px;
+  }
+
+  .search-container {
+    padding: 8px 10px;
+  }
+
+  .search-input {
+    font-size: 13px;
+  }
+
+  .go-button {
+    font-size: 13px;
+    padding: 8px;
   }
 }

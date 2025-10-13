@@ -1,13 +1,16 @@
 .right-sidebar {
-  flex: 0 0 560px;
+  flex: 1;
   background-color: #D9D8CB;
   border-radius: 12px;
   padding: 20px;
-  height: 800px;
+  min-height: 800px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   position: relative;
+  max-width: 560px;
+  min-width: 0; /* Allow shrinking below content size */
+  overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 /* Top Action Buttons */
@@ -153,14 +156,15 @@
 
 /* Additional Text Content */
 .additional-text-content {
-  height: 350px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 12px !important;
-  border: 1px solid rgba(139, 115, 85, 0.1) !important;
-  border-radius: 8px !important;
-  background: transparent !important;
-  margin-bottom: 60px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  border: 1px solid rgba(139, 115, 85, 0.1);
+  border-radius: 8px;
+  background: transparent;
+  margin-bottom: 20px;
+  min-height: 200px;
 }
 
 .additional-text-content p {
@@ -231,12 +235,12 @@
 
 /* Bottom buttons */
 .bottom-buttons {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
+  margin-top: auto;
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: flex-end;
+  padding-top: 20px;
 }
 
 .cancel-btn {
@@ -342,6 +346,8 @@
 @media (max-width: 1024px) {
   .right-sidebar {
     flex: 1;
+    padding: 16px;
+    max-width: calc(100vw - 32px);
   }
 
   .carousel-container {
@@ -350,5 +356,109 @@
 
   .carousel-slide {
     max-width: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .right-sidebar {
+    padding: 12px;
+    margin-top: 20px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .sidebar-header {
+    margin-bottom: 16px;
+  }
+
+  .sidebar-header h2 {
+    font-size: 16px;
+  }
+
+  .option-buttons {
+    gap: 8px;
+  }
+
+  .option-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .carousel-container {
+    margin-bottom: 16px;
+  }
+
+  .carousel-slide {
+    max-width: 100px;
+    height: 80px;
+  }
+
+  .carousel-slide img {
+    border-radius: 6px;
+  }
+
+  .section-header {
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 14px;
+  }
+
+  .section-actions {
+    gap: 6px;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .section-content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .right-sidebar {
+    padding: 10px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .sidebar-header h2 {
+    font-size: 15px;
+  }
+
+  .option-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .carousel-slide {
+    max-width: 80px;
+    height: 60px;
+  }
+
+  .section-title {
+    font-size: 13px;
+  }
+
+  .action-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .section-content {
+    font-size: 12px;
+  }
+}
+
+/* Additional responsive rules for very small screens */
+@media (max-width: 600px) {
+  .right-sidebar {
+    max-width: calc(100vw - 16px);
+    padding: 16px;
   }
 }

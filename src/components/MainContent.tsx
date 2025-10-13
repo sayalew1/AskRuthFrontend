@@ -245,9 +245,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   // Check if we should show Refresh button (only for current active session)
   const isRefreshMode = () => {
-    // Only show "Refresh" if user has created a campaign in current session
-    // (not based on stored history from previous visits to this URL)
-    const shouldShowRefresh = campaignResponse !== null;
+    // Only show "Refresh" if:
+    // 1. User has created a campaign in current session (campaignResponse exists)
+    // 2. AND we're not in a new URL session (facts are ready for current URL)
+    // 3. AND the current URL has campaign history
+    const urlData = getCurrentUrlData();
+    const hasCurrentCampaign = campaignResponse !== null;
+    const hasUrlHistory = urlData.history.length > 0;
+    const factsAreReady = chunkFactsReady;
+
+    const shouldShowRefresh = hasCurrentCampaign && !isNewUrlSession && hasUrlHistory && factsAreReady;
 
     return shouldShowRefresh;
   };
@@ -569,9 +576,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         })}
       </div>
 
-      <div className="content-body">
+      <div className={`content-body ${showAllFacts ? 'expanded-facts' : ''}`}>
         <div className="main-text">
-          <div className="facts-container">
+          <div className={`facts-container ${showAllFacts ? 'expanded' : ''}`}>
             <ul className="facts-list">
               {factsToShow.map((fact, index) => {
                 const isPlaceholder = (activeTab === 0 && storyFacts.length === 0) ||
@@ -596,7 +603,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
         <div className="divider"></div>
 
-        <div className="social-section">
+        <div className={`bottom-sections ${showAllFacts ? 'compressed' : ''}`}>
+          <div className="social-section">
           <h3>Social Media Channel</h3>
           <div className="social-channels">
             {socialChannels.map((channel, index) => (
@@ -653,7 +661,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
                 return shouldShow ? (
                   <>
                     <button
-                      className="url-dropdown-btn"
+                      className={`url-dropdown-btn ${showUrlDropdown ? 'open' : ''}`}
                       onClick={() => {
                         setShowUrlDropdown(!showUrlDropdown);
                       }}
@@ -693,7 +701,11 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
             <div className="campaign-buttons-container">
               <button
-              className={`create-btn ${!isCreateCampaignEnabled() ? 'disabled' : ''} ${showUndoRedo ? 'slide-left' : ''} ${getAllUrls().length > 1 ? 'with-dropdown' : ''}`}
+              className={`create-btn ${!isCreateCampaignEnabled() ? 'disabled' : ''} ${(() => {
+                const urlData = getCurrentUrlData();
+                const shouldSlideLeft = showUndoRedo && !isNewUrlSession && urlData.history.length > 1;
+                return shouldSlideLeft ? 'slide-left' : '';
+              })()} ${getAllUrls().length > 1 ? 'with-dropdown' : ''}`}
               onClick={handleCreateCampaign}
               disabled={!isCreateCampaignEnabled() || isCreatingCampaign}
             >
@@ -712,7 +724,15 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               )}
             </button>
 
-            {showUndoRedo && (
+            {(() => {
+              // Only show undo/redo buttons if:
+              // 1. showUndoRedo is true
+              // 2. NOT in a new URL session
+              // 3. Current URL has multiple campaigns
+              const urlData = getCurrentUrlData();
+              const shouldShowButtons = showUndoRedo && !isNewUrlSession && urlData.history.length > 1;
+              return shouldShowButtons;
+            })() && (
               <div className="undo-redo-buttons">
                 <button
                   className={`undo-btn ${!canUndo() ? 'disabled' : ''}`}
@@ -763,6 +783,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           </div>
         )}
 
+        </div> {/* End of bottom-sections */}
       </div>
 
       {/* No Facts Popup */}
