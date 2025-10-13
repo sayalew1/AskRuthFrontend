@@ -136,7 +136,7 @@
 }
 
 .dot.active {
-  background-color: #8b5cf6;
+  background-color: #93279C;
 }
 
 /* Text Content */
@@ -293,7 +293,7 @@
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #8b5cf6;
+  color: #93279C;
   margin: 0;
 }
 
@@ -315,6 +315,21 @@
 
 .action-btn:hover {
   background-color: rgba(139, 115, 85, 0.1);
+}
+
+.prev-btn, .next-btn {
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prev-btn:hover, .next-btn:hover {
+  background-color: rgba(147, 39, 156, 0.1);
+  color: #93279C;
 }
 
 .section-content {

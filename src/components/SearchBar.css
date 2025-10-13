@@ -1,6 +1,6 @@
 .search-bar-section {
   background-color: #f8f5f0;
-  padding: 20px 0;
+  padding: 8px 0;
 }
 
 .search-bar-container {
@@ -40,7 +40,7 @@
 }
 
 .go-button {
-  background-color: #b794d1;
+  background-color: #93279C;
   color: white;
   border: none;
   border-radius: 20px;
@@ -51,13 +51,13 @@
   transition: all 0.2s ease;
   flex-shrink: 0;
   opacity: 1;
-  box-shadow: 0 2px 4px rgba(183, 148, 209, 0.3);
+  box-shadow: 0 2px 4px rgba(147, 39, 156, 0.3);
 }
 
 .go-button:hover:not(:disabled) {
-  background-color: #a584c4;
+  background-color: #7A1F82;
   transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(183, 148, 209, 0.4);
+  box-shadow: 0 3px 6px rgba(147, 39, 156, 0.4);
 }
 
 .go-button:disabled {
@@ -93,18 +93,46 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(217, 216, 203, 0.95), rgba(200, 162, 200, 0.95));
+  background:
+    radial-gradient(circle at 25% 25%, rgba(147, 39, 156, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(184, 61, 204, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(122, 31, 130, 0.2) 0%, transparent 70%),
+    linear-gradient(135deg, #93279C 0%, #B83DCC 25%, #7A1F82 50%, #651A6E 75%, #93279C 100%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 400% 400%;
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.3s ease-out;
+  backdrop-filter: blur(16px) saturate(1.3);
+  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1), searchGradientShift 8s ease-in-out infinite;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px) saturate(1);
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(16px) saturate(1.3);
+    transform: scale(1);
+  }
+}
+
+@keyframes searchGradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 50% 100%;
+  }
+  75% {
+    background-position: 50% 0%;
+  }
 }
 
 .loading-modal {
@@ -141,7 +169,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #c8a2c8, #b794d1, #8b7355, #c8a2c8);
+  background: linear-gradient(90deg, #93279C, #7A1F82, #651A6E, #93279C);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
@@ -154,9 +182,9 @@
 .large-spinner {
   width: 64px;
   height: 64px;
-  border: 5px solid rgba(200, 162, 200, 0.2);
-  border-top: 5px solid #c8a2c8;
-  border-right: 5px solid #b794d1;
+  border: 5px solid rgba(147, 39, 156, 0.2);
+  border-top: 5px solid #93279C;
+  border-right: 5px solid #7A1F82;
   border-radius: 50%;
   animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
   margin: 0 auto 32px auto;
@@ -221,7 +249,7 @@
 
 @media (max-width: 768px) {
   .search-bar-section {
-    padding: 15px 0;
+    padding: 6px 0;
   }
   
   .search-bar-container {

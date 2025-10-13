@@ -24,10 +24,14 @@ function App() {
   const [chunkFactsReady, setChunkFactsReady] = useState<boolean>(false);
   const [chunkFactsData, setChunkFactsData] = useState<any>(null);
   const [variations, setVariations] = useState<any>(null);
+  const [currentUrl, setCurrentUrl] = useState<string>('');
+  const [searchText, setSearchText] = useState<string>('');
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
-      setStoryFacts(response.facts);
+      if (response.facts.length > 0) {
+        setStoryFacts(response.facts);
+      }
       // Reset chunk facts state when new story facts are received
       setChunkFacts([]);
       setChunkFactsReady(false);
@@ -45,12 +49,29 @@ function App() {
     setVariations(variationsData);
   };
 
+  const handleUrlChanged = (url: string) => {
+    setCurrentUrl(url);
+    setSearchText(url); // Update search bar when URL changes
+  };
+
+  const handleUrlSwitch = (url: string) => {
+    setCurrentUrl(url);
+    setSearchText(url); // Update search bar when URL is switched
+  };
+
+  const handleSearchTextChange = (text: string) => {
+    setSearchText(text);
+  };
+
   return (
     <div className="app">
       <Header />
       <SearchBar
         onFactsExtracted={handleFactsExtracted}
         onChunkFactsReady={handleChunkFactsReady}
+        onUrlChanged={handleUrlChanged}
+        searchText={searchText}
+        onSearchTextChange={handleSearchTextChange}
       />
       <div className="app-body">
         <Sidebar />
@@ -60,6 +81,8 @@ function App() {
           chunkFactsReady={chunkFactsReady}
           chunkFactsData={chunkFactsData}
           onVariationsGenerated={handleVariationsGenerated}
+          currentUrl={currentUrl}
+          onUrlSwitch={handleUrlSwitch}
         />
         <RightSidebar variations={variations} />
       </div>
