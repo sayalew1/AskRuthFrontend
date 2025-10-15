@@ -10,9 +10,10 @@ interface MainContentProps {
   onVariationsGenerated?: (variations: any) => void;
   currentUrl: string;
   onUrlSwitch?: (url: string) => void;
+  goButtonClicked?: boolean;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked }) => {
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
   const [activeSocialChannel, setActiveSocialChannel] = React.useState(0);
@@ -46,7 +47,15 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const [showUrlDropdown, setShowUrlDropdown] = React.useState(false);
   const [showNoFactsPopup, setShowNoFactsPopup] = React.useState(false);
 
-  // Automatically select "Story Facts" tab when facts are received from API
+  // Automatically select "Story Facts" tab when GO button is clicked
+  useEffect(() => {
+    if (goButtonClicked) {
+      setActiveTab(0); // Select "Story Facts" tab immediately when GO is clicked
+      setShowAllFacts(false); // Collapse facts if they were expanded (Show Less)
+    }
+  }, [goButtonClicked]);
+
+  // Automatically select "Story Facts" tab when facts are received from API (fallback)
   useEffect(() => {
     if (storyFacts.length > 0 && activeTab === -1) {
       setActiveTab(0); // Select "Story Facts" tab
@@ -63,17 +72,17 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   }, [chunkFacts.length]);
 
   const socialChannels = [
-    { name: 'Plain Text', active: true },
-    { name: 'Instagram', active: false },
-    { name: 'Facebook', active: false },
-    { name: 'Blue Sky', active: false }
+    { name: 'Plain Text', active: true, description: null },
+    { name: 'Instagram', active: false, description: "Coming Soon" },
+    { name: 'Facebook', active: false, description: "Coming Soon" },
+    { name: 'Blue Sky', active: false, description: "Coming Soon" }
   ];
 
   const actionButtons = [
-    { name: 'Donate', color: '#dc2626' },
-    { name: 'Spread the Word', color: '#059669' },
-    { name: 'Go to a Protest', color: '#7c3aed' },
-    { name: 'Contact your Rep', color: '#0891b2' }
+    { name: 'Donate', color: '#dc2626', description: "Suport NPO's or crowdfund your own Cause" },
+    { name: 'Spread the Word', color: '#059669', description: "Get the word out on issues that you care about" },
+    { name: 'Go to a Protest', color: '#7c3aed', description: "Coming Soon" },
+    { name: 'Contact your Rep', color: '#0891b2', description: "Coming Soon" }
   ];
 
   const voiceOptions = ['Voice'];
@@ -532,6 +541,23 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         "This may take a few moments to complete.",
         "Additional context will appear here when ready."
       ];
+    } else if (activeTab === 2) {
+      // Sources tab
+      const sources = chunkFactsData?.chunk_facts?.sources || [];
+      if (sources.length > 0) {
+        return sources.map((source: any) => source.title || 'Untitled Source');
+      } else if (chunkFactsReady) {
+        return [
+          "No sources found for this article.",
+          "Sources will appear here when available from the analysis."
+        ];
+      } else {
+        return [
+          "Sources are being processed...",
+          "This may take a few moments to complete.",
+          "Source links will appear here when ready."
+        ];
+      }
     }
     return [
       "Select a tab above to view facts.",
@@ -541,8 +567,10 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   };
 
   const displayFacts = getCurrentFacts();
-  const factsToShow = showAllFacts ? displayFacts : displayFacts.slice(0, 3);
-  const hasMoreFacts = displayFacts.length > 3;
+
+  // For Sources tab, always show all sources (don't limit with Show More/Less)
+  const factsToShow = (activeTab === 2) ? displayFacts : (showAllFacts ? displayFacts : displayFacts.slice(0, 3));
+  const hasMoreFacts = (activeTab === 2) ? false : displayFacts.length > 3;
 
   // Handler to close the no facts popup
   const handleCloseNoFactsPopup = () => {
@@ -559,9 +587,11 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         {tabs.map((tab, index) => {
           const isStoryFacts = index === 0;
           const isRelatedFacts = index === 1;
-          const isDisabled = (isStoryFacts && storyFacts.length === 0) || (isRelatedFacts && (!chunkFactsReady || chunkFacts.length === 0));
-
-
+          const isSources = index === 2;
+          const sources = chunkFactsData?.chunk_facts?.sources || [];
+          const isDisabled = (isStoryFacts && storyFacts.length === 0) ||
+                           (isRelatedFacts && (!chunkFactsReady || chunkFacts.length === 0)) ||
+                           (isSources && (!chunkFactsReady || sources.length === 0));
 
           return (
             <button
@@ -582,7 +612,29 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
             <ul className="facts-list">
               {factsToShow.map((fact, index) => {
                 const isPlaceholder = (activeTab === 0 && storyFacts.length === 0) ||
-                                    (activeTab === 1 && chunkFacts.length === 0);
+                                    (activeTab === 1 && chunkFacts.length === 0) ||
+                                    (activeTab === 2 && (!chunkFactsReady || (chunkFactsData?.chunk_facts?.sources || []).length === 0));
+
+                // Handle Sources tab with clickable links
+                if (activeTab === 2 && !isPlaceholder) {
+                  const sources = chunkFactsData?.chunk_facts?.sources || [];
+                  const source = sources[index];
+                  if (source && source.url) {
+                    return (
+                      <li key={index} className="extracted-fact source-fact">
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="source-link"
+                        >
+                          {fact}
+                        </a>
+                      </li>
+                    );
+                  }
+                }
+
                 return (
                   <li key={index} className={isPlaceholder ? 'placeholder-fact' : 'extracted-fact'}>
                     {fact}
@@ -617,21 +669,31 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               </button>
             ))}
           </div>
+          {activeSocialChannel !== null && activeSocialChannel >= 0 && socialChannels[activeSocialChannel].description && (
+            <div className="social-description">
+              {socialChannels[activeSocialChannel].description}
+            </div>
+          )}
         </div>
 
         <div className="goal-section">
           <h3>Goal</h3>
-          <div className="action-buttons-grid">
+          <div className="goal-buttons">
             {actionButtons.map((button, index) => (
               <button
                 key={index}
-                className={`action-btn ${activeActionButton === index ? 'active' : ''}`}
+                className={`goal-btn ${activeActionButton === index ? 'active' : ''}`}
                 onClick={() => handleActionButtonClick(index)}
               >
                 {button.name}
               </button>
             ))}
           </div>
+          {activeActionButton !== null && activeActionButton >= 0 && (
+            <div className="goal-description">
+              {actionButtons[activeActionButton].description}
+            </div>
+          )}
         </div>
 
         <div className="voice-section">
@@ -760,26 +822,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
         {/* Loading Overlay for Campaign Creation */}
         {isCreatingCampaign && (
-          <div className="campaign-loading-overlay">
-            <div className="campaign-loading-modal">
-              <div className="campaign-large-spinner"></div>
-              <h3>Creating Your Campaign</h3>
-              <p>Our AI is crafting personalized campaign content based on your facts and preferences...</p>
-              <div className="loading-steps">
-                <div className="loading-step active">
-                  <div className="step-icon">🧠</div>
-                  <span>Analyzing facts</span>
-                </div>
-                <div className="loading-step active">
-                  <div className="step-icon">🎯</div>
-                  <span>Applying strategy</span>
-                </div>
-                <div className="loading-step active">
-                  <div className="step-icon">✨</div>
-                  <span>Generating variations</span>
-                </div>
-              </div>
-            </div>
+          <div className="simple-loading-overlay">
+            <div className="simple-spinner"></div>
           </div>
         )}
 

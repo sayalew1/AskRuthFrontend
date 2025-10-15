@@ -38,7 +38,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
   const images = [
     { id: 1, src: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=300&h=200&fit=crop&crop=center', alt: 'Polar bears on ice' },
     { id: 2, src: 'https://images.unsplash.com/photo-1589578527966-fdac0f44566c?w=300&h=200&fit=crop&crop=center', alt: 'Supreme Court building' },
-    { id: 3, src: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop&crop=center', alt: 'Person with protest sign' }
+    { id: 3, src: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop&crop=center', alt: 'Person with protest sign' },
+    { id: 4, src: 'https://images.unsplash.com/photo-1589578527966-fdac0f44566c?w=300&h=200&fit=crop&crop=center', alt: 'Supreme Court building 2' }
   ];
 
   const handleSectionRefresh = (sectionKey: string) => {
@@ -159,14 +160,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
           {images.map((image, index) => (
             <div key={image.id} className={'carousel-slide ' + (index === currentImageIndex ? 'active' : '')}>
               <img src={image.src} alt={image.alt} />
-              <button className="copy-btn">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Back rectangle (copy) */}
-                  <rect x="5" y="3" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
-                  {/* Front rectangle (original) */}
-                  <rect x="3" y="1" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
-                </svg>
-              </button>
+              {index < 3 && (
+                <button className="copy-btn">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Back rectangle (copy) */}
+                    <rect x="5" y="3" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
+                    {/* Front rectangle (original) */}
+                    <rect x="3" y="1" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
+                  </svg>
+                </button>
+              )}
             </div>
           ))}
         </div>

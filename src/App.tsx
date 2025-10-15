@@ -26,6 +26,7 @@ function App() {
   const [variations, setVariations] = useState<any>(null);
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
+  const [goButtonClicked, setGoButtonClicked] = useState<boolean>(false);
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
@@ -65,6 +66,12 @@ function App() {
     setSearchText(text);
   };
 
+  const handleGoButtonClicked = () => {
+    setGoButtonClicked(true);
+    // Reset the flag after a short delay to allow MainContent to react
+    setTimeout(() => setGoButtonClicked(false), 100);
+  };
+
   return (
     <div className="app">
       <Header />
@@ -74,6 +81,7 @@ function App() {
         onUrlChanged={handleUrlChanged}
         searchText={searchText}
         onSearchTextChange={handleSearchTextChange}
+        onGoButtonClicked={handleGoButtonClicked}
       />
       <div className="app-body">
         <Sidebar />
@@ -85,6 +93,7 @@ function App() {
           onVariationsGenerated={handleVariationsGenerated}
           currentUrl={currentUrl}
           onUrlSwitch={handleUrlSwitch}
+          goButtonClicked={goButtonClicked}
         />
         <RightSidebar variations={variations} />
       </div>

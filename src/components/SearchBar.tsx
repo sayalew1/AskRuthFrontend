@@ -19,9 +19,10 @@ interface SearchBarProps {
   onUrlChanged: (url: string) => void;
   searchText?: string; // Allow external control of search text
   onSearchTextChange?: (text: string) => void; // Notify parent of search text changes
+  onGoButtonClicked?: () => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsReady, onUrlChanged, searchText: externalSearchText, onSearchTextChange }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsReady, onUrlChanged, searchText: externalSearchText, onSearchTextChange, onGoButtonClicked }) => {
   const [internalSearchText, setInternalSearchText] = useState('');
 
   // Use external search text if provided, otherwise use internal state
@@ -44,6 +45,11 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
   const handleGoClick = async () => {
     const url = searchText.trim();
     if (!isValidUrl(url)) return;
+
+    // Notify parent that GO button was clicked (for immediate tab selection)
+    if (onGoButtonClicked) {
+      onGoButtonClicked();
+    }
 
     // Notify parent about URL change immediately when Go is clicked
     onUrlChanged(url);
@@ -163,12 +169,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-modal">
-            <div className="large-spinner"></div>
-            <h3>Extracting Facts</h3>
-            <p>Analyzing content with AI to identify key facts, causes, and insights...</p>
-          </div>
+        <div className="simple-loading-overlay">
+          <div className="simple-spinner"></div>
         </div>
       )}
 
