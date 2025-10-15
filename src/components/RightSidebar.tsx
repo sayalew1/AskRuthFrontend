@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './RightSidebar.css';
 
 interface RightSidebarProps {
@@ -17,13 +17,52 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
     call_to_action: 0
   });
 
+  // Reset sidebar state when variations change (e.g., when switching URLs)
+  useEffect(() => {
+    // Reset section indices to 0 when variations change
+    setSectionIndices({
+      opening_paragraph: 0,
+      core_message: 0,
+      supporting_evidence: 0,
+      emotional_appeal: 0,
+      call_to_action: 0
+    });
+
+    // Clear custom campaign suggestion when variations change
+    setCustomCampaignSuggestion('');
+
+    // Reset to campaign view when new variations are loaded
+    setSelectedOption('campaign');
+  }, [variations]);
+
   const images = [
     { id: 1, src: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=300&h=200&fit=crop&crop=center', alt: 'Polar bears on ice' },
     { id: 2, src: 'https://images.unsplash.com/photo-1589578527966-fdac0f44566c?w=300&h=200&fit=crop&crop=center', alt: 'Supreme Court building' },
-    { id: 3, src: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop&crop=center', alt: 'Person with protest sign' }
+    { id: 3, src: 'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=300&h=200&fit=crop&crop=center', alt: 'Person with protest sign' },
+    { id: 4, src: 'https://images.unsplash.com/photo-1589578527966-fdac0f44566c?w=300&h=200&fit=crop&crop=center', alt: 'Supreme Court building 2' }
   ];
 
   const handleSectionRefresh = (sectionKey: string) => {
+    if (!variations || !variations[sectionKey] || variations[sectionKey].length === 0) {
+      return;
+    }
+    setSectionIndices(prev => ({
+      ...prev,
+      [sectionKey]: (prev[sectionKey] + 1) % variations[sectionKey].length
+    }));
+  };
+
+  const handleSectionPrevious = (sectionKey: string) => {
+    if (!variations || !variations[sectionKey] || variations[sectionKey].length === 0) {
+      return;
+    }
+    setSectionIndices(prev => ({
+      ...prev,
+      [sectionKey]: (prev[sectionKey] - 1 + variations[sectionKey].length) % variations[sectionKey].length
+    }));
+  };
+
+  const handleSectionNext = (sectionKey: string) => {
     if (!variations || !variations[sectionKey] || variations[sectionKey].length === 0) {
       return;
     }
@@ -113,10 +152,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
             Other Options
           </button>
         </div>
-        <div className="right-buttons">
-          <button className="action-button icon">↻</button>
-          <button className="action-button secondary">Undo</button>
-        </div>
+
       </div>
       
       <div className="image-carousel">
@@ -124,14 +160,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
           {images.map((image, index) => (
             <div key={image.id} className={'carousel-slide ' + (index === currentImageIndex ? 'active' : '')}>
               <img src={image.src} alt={image.alt} />
-              <button className="copy-btn">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Back rectangle (copy) */}
-                  <rect x="5" y="3" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
-                  {/* Front rectangle (original) */}
-                  <rect x="3" y="1" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
-                </svg>
-              </button>
+              {index < 3 && (
+                <button className="copy-btn">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* Back rectangle (copy) */}
+                    <rect x="5" y="3" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
+                    {/* Front rectangle (original) */}
+                    <rect x="3" y="1" width="8" height="10" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2"/>
+                  </svg>
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -160,8 +198,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
               <div className="section-header">
                 <h4 className="section-title">Opening Paragraph</h4>
                 <div className="section-actions">
-                  <button className="action-btn refresh-btn" onClick={() => handleSectionRefresh('opening_paragraph')}>↻</button>
-                  <button className="action-btn undo-btn">Undo</button>
+                  <button className="action-btn prev-btn" onClick={() => handleSectionPrevious('opening_paragraph')}>←</button>
+                  <button className="action-btn next-btn" onClick={() => handleSectionNext('opening_paragraph')}>→</button>
                 </div>
               </div>
               <p className="section-content">
@@ -173,8 +211,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
               <div className="section-header">
                 <h4 className="section-title">Core Message</h4>
                 <div className="section-actions">
-                  <button className="action-btn refresh-btn" onClick={() => handleSectionRefresh('core_message')}>↻</button>
-                  <button className="action-btn undo-btn">Undo</button>
+                  <button className="action-btn prev-btn" onClick={() => handleSectionPrevious('core_message')}>←</button>
+                  <button className="action-btn next-btn" onClick={() => handleSectionNext('core_message')}>→</button>
                 </div>
               </div>
               <p className="section-content">
@@ -186,8 +224,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
               <div className="section-header">
                 <h4 className="section-title">Supporting Evidence</h4>
                 <div className="section-actions">
-                  <button className="action-btn refresh-btn" onClick={() => handleSectionRefresh('supporting_evidence')}>↻</button>
-                  <button className="action-btn undo-btn">Undo</button>
+                  <button className="action-btn prev-btn" onClick={() => handleSectionPrevious('supporting_evidence')}>←</button>
+                  <button className="action-btn next-btn" onClick={() => handleSectionNext('supporting_evidence')}>→</button>
                 </div>
               </div>
               <p className="section-content">
@@ -199,8 +237,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
               <div className="section-header">
                 <h4 className="section-title">Emotional Appeal</h4>
                 <div className="section-actions">
-                  <button className="action-btn refresh-btn" onClick={() => handleSectionRefresh('emotional_appeal')}>↻</button>
-                  <button className="action-btn undo-btn">Undo</button>
+                  <button className="action-btn prev-btn" onClick={() => handleSectionPrevious('emotional_appeal')}>←</button>
+                  <button className="action-btn next-btn" onClick={() => handleSectionNext('emotional_appeal')}>→</button>
                 </div>
               </div>
               <p className="section-content">
@@ -212,8 +250,8 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
               <div className="section-header">
                 <h4 className="section-title">Call to Action</h4>
                 <div className="section-actions">
-                  <button className="action-btn refresh-btn" onClick={() => handleSectionRefresh('call_to_action')}>↻</button>
-                  <button className="action-btn undo-btn">Undo</button>
+                  <button className="action-btn prev-btn" onClick={() => handleSectionPrevious('call_to_action')}>←</button>
+                  <button className="action-btn next-btn" onClick={() => handleSectionNext('call_to_action')}>→</button>
                 </div>
               </div>
               <p className="section-content">

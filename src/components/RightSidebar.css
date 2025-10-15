@@ -1,13 +1,18 @@
 .right-sidebar {
-  flex: 0 0 560px;
+  flex: 1;
   background-color: #D9D8CB;
   border-radius: 12px;
   padding: 20px;
-  height: 800px;
+  min-height: 800px;
+  max-height: 800px; /* Prevent sidebar from growing beyond this height */
   display: flex;
   flex-direction: column;
   gap: 16px;
   position: relative;
+  max-width: 560px;
+  min-width: 0; /* Allow shrinking below content size */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  overflow-y: hidden; /* Prevent vertical overflow of the entire sidebar */
 }
 
 /* Top Action Buttons */
@@ -29,24 +34,52 @@
   align-items: center;
 }
 
+/* Base button styles */
 .action-button {
-  padding: 10px 20px;
+  height: 48px;
   border: none;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 12px; /* Spacing/SM */
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-style: normal;
+  font-size: 10px;
+  line-height: 9px;
+  letter-spacing: 0.01em;
+  text-align: center;
   cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  box-sizing: border-box;
   white-space: nowrap;
+  opacity: 1;
 }
 
+/* Campaign Suggestion button - always 187px width */
+.action-button:first-child {
+  width: 187px;
+  padding: 16px 12px; /* Spacing/M top/bottom, Spacing/SM left/right */
+}
+
+/* Other Options button - always 125px width */
+.action-button:last-child {
+  width: 125px;
+  padding: 12px; /* Spacing/SM all around */
+}
+
+/* Active state styling */
 .action-button.primary {
-  background-color: #8b7355;
-  color: white;
+  background-color: #6C6051;
+  color: #E7E6DE;
 }
 
+/* Inactive state styling */
 .action-button.secondary {
-  background-color: #f8f5f0;
-  color: #666;
+  background-color: #E7E6DE;
+  color: #6C6051;
 }
 
 .action-button.icon {
@@ -76,9 +109,10 @@
 
 .carousel-container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr 1fr 0.35fr;
   gap: 10px;
   margin-bottom: 15px;
+  overflow: hidden;
 }
 
 .carousel-slide {
@@ -106,6 +140,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  vertical-align: middle;
   font-size: 16px;
   cursor: pointer;
   color: #8b7355;
@@ -136,7 +172,7 @@
 }
 
 .dot.active {
-  background-color: #8b5cf6;
+  background-color: #93279C;
 }
 
 /* Text Content */
@@ -153,14 +189,16 @@
 
 /* Additional Text Content */
 .additional-text-content {
-  height: 350px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 12px !important;
-  border: 1px solid rgba(139, 115, 85, 0.1) !important;
-  border-radius: 8px !important;
-  background: transparent !important;
-  margin-bottom: 60px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+  border: 1px solid rgba(139, 115, 85, 0.1);
+  border-radius: 8px;
+  background: transparent;
+  margin-bottom: 20px;
+  min-height: 200px;
+  max-height: 500px; /* Limit maximum height to prevent layout expansion */
 }
 
 .additional-text-content p {
@@ -226,17 +264,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  vertical-align: middle;
   color: white;
 }
 
 /* Bottom buttons */
 .bottom-buttons {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
+  margin-top: auto;
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: flex-end;
+  padding-top: 20px;
 }
 
 .cancel-btn {
@@ -249,6 +289,11 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .cancel-btn:hover {
@@ -265,6 +310,11 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .done-btn:hover {
@@ -293,7 +343,7 @@
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #8b5cf6;
+  color: #93279C;
   margin: 0;
 }
 
@@ -317,6 +367,30 @@
   background-color: rgba(139, 115, 85, 0.1);
 }
 
+.prev-btn, .next-btn {
+  font-size: 16px;
+  font-weight: 500;
+  min-width: 40px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  vertical-align: middle;
+  padding: 10px 12px;
+  border-radius: 50%;
+  border: none;
+  background-color: #f8f5f0;
+  color: #666;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.prev-btn:hover, .next-btn:hover {
+  background-color: rgba(147, 39, 156, 0.1);
+  color: #93279C;
+}
+
 .section-content {
   font-size: 14px;
   line-height: 1.6;
@@ -327,13 +401,165 @@
 @media (max-width: 1024px) {
   .right-sidebar {
     flex: 1;
+    padding: 16px;
+    max-width: calc(100vw - 32px);
   }
 
   .carousel-container {
+    grid-template-columns: 1fr 1fr 1fr 0.35fr;
     justify-content: center;
   }
 
   .carousel-slide {
     max-width: 120px;
+  }
+
+  /* Tablet responsive - maintain fixed widths */
+  .action-button {
+    height: 42px;
+    font-size: 9px;
+    line-height: 8px;
+  }
+
+  /* Campaign Suggestion button - always 150px on tablet */
+  .action-button:first-child {
+    width: 150px;
+    padding: 14px 10px;
+  }
+
+  /* Other Options button - always 100px on tablet */
+  .action-button:last-child {
+    width: 100px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .right-sidebar {
+    padding: 12px;
+    margin-top: 20px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .sidebar-header {
+    margin-bottom: 16px;
+  }
+
+  .sidebar-header h2 {
+    font-size: 16px;
+  }
+
+  .option-buttons {
+    gap: 8px;
+  }
+
+  .option-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+
+  .carousel-container {
+    grid-template-columns: 1fr 1fr 1fr 0.35fr;
+    margin-bottom: 16px;
+  }
+
+  .carousel-slide {
+    max-width: 100px;
+    height: 80px;
+  }
+
+  .carousel-slide img {
+    border-radius: 6px;
+  }
+
+  .section-header {
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 14px;
+  }
+
+  .section-actions {
+    gap: 6px;
+  }
+
+  .action-btn {
+    width: auto;
+    height: 38px;
+    font-size: 14px;
+    padding: 8px 10px;
+    min-width: 36px;
+    box-sizing: border-box;
+  }
+
+  .section-content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 480px) {
+  .right-sidebar {
+    padding: 10px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .sidebar-header h2 {
+    font-size: 15px;
+  }
+
+  .option-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .carousel-slide {
+    max-width: 80px;
+    height: 60px;
+  }
+
+  .section-title {
+    font-size: 13px;
+  }
+
+  .action-btn {
+    width: auto;
+    height: 34px;
+    font-size: 12px;
+    padding: 8px 10px;
+    min-width: 32px;
+    box-sizing: border-box;
+  }
+
+  .section-content {
+    font-size: 12px;
+  }
+
+  /* Mobile responsive - maintain fixed widths */
+  .action-button {
+    height: 38px;
+    font-size: 8px;
+    line-height: 7px;
+  }
+
+  /* Campaign Suggestion button - always 130px on mobile */
+  .action-button:first-child {
+    width: 130px;
+    padding: 12px 8px;
+  }
+
+  /* Other Options button - always 85px on mobile */
+  .action-button:last-child {
+    width: 85px;
+    padding: 8px;
+  }
+}
+
+/* Additional responsive rules for very small screens */
+@media (max-width: 600px) {
+  .right-sidebar {
+    max-width: calc(100vw - 16px);
+    padding: 16px;
   }
 }

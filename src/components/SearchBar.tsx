@@ -16,25 +16,51 @@ interface ApiResponse {
 interface SearchBarProps {
   onFactsExtracted: (response: ApiResponse) => void;
   onChunkFactsReady: (facts: string[], fullData: any) => void;
+  onUrlChanged: (url: string) => void;
+  searchText?: string; // Allow external control of search text
+  onSearchTextChange?: (text: string) => void; // Notify parent of search text changes
+  onGoButtonClicked?: () => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsReady }) => {
-  const [searchText, setSearchText] = useState('');
+const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsReady, onUrlChanged, searchText: externalSearchText, onSearchTextChange, onGoButtonClicked }) => {
+  const [internalSearchText, setInternalSearchText] = useState('');
+
+  // Use external search text if provided, otherwise use internal state
+  const searchText = externalSearchText !== undefined ? externalSearchText : internalSearchText;
 
   const [isLoading, setIsLoading] = useState(false);
+  const [currentUrl, setCurrentUrl] = React.useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
+    const newValue = e.target.value;
+    if (externalSearchText !== undefined && onSearchTextChange) {
+      // If using external control, notify parent
+      onSearchTextChange(newValue);
+    } else {
+      // Otherwise use internal state
+      setInternalSearchText(newValue);
+    }
   };
 
   const handleGoClick = async () => {
     const url = searchText.trim();
     if (!isValidUrl(url)) return;
 
+    // Notify parent that GO button was clicked (for immediate tab selection)
+    if (onGoButtonClicked) {
+      onGoButtonClicked();
+    }
+
+    // Notify parent about URL change immediately when Go is clicked
+    onUrlChanged(url);
+
     setIsLoading(true);
     try {
       // Add protocol if missing
       const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+
+      // Store the current URL for later use
+      setCurrentUrl(fullUrl);
 
       const response = await fetch('http://localhost:8000/api/extract-facts/', {
         method: 'POST',
@@ -48,22 +74,15 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
 
       const data = await response.json();
 
-
-
       // Pass facts to parent component
       onFactsExtracted(data);
 
       // Start polling for chunk facts if job_id is available
       if (data.job_id) {
-
         pollChunkFactsStatus(data.job_id);
-      } else {
-
       }
 
-
     } catch (error) {
-
       // Handle error silently or show user-friendly message
     } finally {
       setIsLoading(false);
@@ -87,39 +106,33 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
 
     const poll = async () => {
       try {
-
         const timestamp = Date.now();
         const response = await fetch(`http://localhost:8000/api/chunk-facts-status?job_id=${jobId}&_t=${timestamp}`, {
           cache: 'no-cache'
         });
         const data = await response.json();
 
-
-
         if (data.ok) {
           if (data.status === 'done' && data.chunk_facts && data.chunk_facts.facts) {
-
-            onChunkFactsReady(data.chunk_facts.facts, data);
+            // Add the original URL to the chunk facts data
+            const chunkFactsWithUrl = {
+              ...data,
+              original_url: currentUrl,
+              url: currentUrl
+            };
+            onChunkFactsReady(data.chunk_facts.facts, chunkFactsWithUrl);
             return;
           } else if (data.status === 'error') {
-
             return;
-          } else {
-
           }
-        } else {
-
         }
-
 
         attempts++;
         if (attempts < maxAttempts) {
           setTimeout(poll, 5000); // Poll every 5 seconds
-        } else {
-
         }
       } catch (error) {
-
+        // Handle polling error silently
       }
     };
 
@@ -156,12 +169,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-modal">
-            <div className="large-spinner"></div>
-            <h3>Extracting Facts</h3>
-            <p>Analyzing content with AI to identify key facts, causes, and insights...</p>
-          </div>
+        <div className="simple-loading-overlay">
+          <div className="simple-spinner"></div>
         </div>
       )}
 
