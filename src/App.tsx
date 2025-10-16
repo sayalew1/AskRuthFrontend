@@ -18,6 +18,34 @@ interface ApiResponse {
   error?: any;
 }
 
+interface StoryData {
+  story: {
+    id: number;
+    title: string;
+    summary: string;
+    hero_image_url: string;
+    published_at: string;
+  };
+  facts: {
+    story_facts: Array<{
+      text: string;
+      metadata: {
+        source_url: string;
+      };
+    }>;
+    related_facts: Array<{
+      text: string;
+      metadata: {
+        source_url: string;
+      };
+    }>;
+  };
+  sources: Array<{
+    url: string;
+    title?: string;
+  }>;
+}
+
 function App() {
   const [storyFacts, setStoryFacts] = useState<string[]>([]);
   const [chunkFacts, setChunkFacts] = useState<string[]>([]);
@@ -27,6 +55,9 @@ function App() {
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
   const [goButtonClicked, setGoButtonClicked] = useState<boolean>(false);
+  const [storyData, setStoryData] = useState<StoryData | null>(null);
+  const [isLoadingStory, setIsLoadingStory] = useState<boolean>(false);
+  const [shouldActivateStoryTab, setShouldActivateStoryTab] = useState<boolean>(false);
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
@@ -72,6 +103,32 @@ function App() {
     setTimeout(() => setGoButtonClicked(false), 100);
   };
 
+  const handleStoryCardClick = async (storyId: number) => {
+    setIsLoadingStory(true);
+    try {
+      const response = await fetch(`/api/askruth/story/${storyId}`);
+      if (response.ok) {
+        const data: StoryData = await response.json();
+        setStoryData(data);
+
+        // Clear existing facts data when loading a new story
+        setStoryFacts([]);
+        setChunkFacts([]);
+        setChunkFactsReady(false);
+        setChunkFactsData(null);
+
+        // Trigger Story Facts tab activation
+        setShouldActivateStoryTab(true);
+      } else {
+        console.error('Failed to fetch story data:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching story data:', error);
+    } finally {
+      setIsLoadingStory(false);
+    }
+  };
+
   return (
     <div className="app">
       <Header />
@@ -84,7 +141,7 @@ function App() {
         onGoButtonClicked={handleGoButtonClicked}
       />
       <div className="app-body">
-        <Sidebar />
+        <Sidebar onStoryCardClick={handleStoryCardClick} />
         <MainContent
           storyFacts={storyFacts}
           chunkFacts={chunkFacts}
@@ -94,6 +151,10 @@ function App() {
           currentUrl={currentUrl}
           onUrlSwitch={handleUrlSwitch}
           goButtonClicked={goButtonClicked}
+          storyData={storyData}
+          isLoadingStory={isLoadingStory}
+          shouldActivateStoryTab={shouldActivateStoryTab}
+          onStoryTabActivated={() => setShouldActivateStoryTab(false)}
         />
         <RightSidebar variations={variations} />
       </div>

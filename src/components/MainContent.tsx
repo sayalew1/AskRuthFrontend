@@ -2,6 +2,34 @@ import React, { useEffect } from 'react';
 import './MainContent.css';
 import NoFactsPopup from './NoFactsPopup';
 
+interface StoryData {
+  story: {
+    id: number;
+    title: string;
+    summary: string;
+    hero_image_url: string;
+    published_at: string;
+  };
+  facts: {
+    story_facts: Array<{
+      text: string;
+      metadata: {
+        source_url: string;
+      };
+    }>;
+    related_facts: Array<{
+      text: string;
+      metadata: {
+        source_url: string;
+      };
+    }>;
+  };
+  sources: Array<{
+    url: string;
+    title?: string;
+  }>;
+}
+
 interface MainContentProps {
   storyFacts: string[];
   chunkFacts: string[];
@@ -11,9 +39,13 @@ interface MainContentProps {
   currentUrl: string;
   onUrlSwitch?: (url: string) => void;
   goButtonClicked?: boolean;
+  storyData?: StoryData | null;
+  isLoadingStory?: boolean;
+  shouldActivateStoryTab?: boolean;
+  onStoryTabActivated?: () => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated }) => {
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
   const [activeSocialChannel, setActiveSocialChannel] = React.useState(0);
@@ -46,6 +78,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const [isNewUrlSession, setIsNewUrlSession] = React.useState(true);
   const [showUrlDropdown, setShowUrlDropdown] = React.useState(false);
   const [showNoFactsPopup, setShowNoFactsPopup] = React.useState(false);
+
+  // Effect to activate Story Facts tab when story data is loaded
+  useEffect(() => {
+    if (shouldActivateStoryTab && storyData?.facts?.story_facts?.length) {
+      setActiveTab(0); // Activate Story Facts tab (index 0)
+      if (onStoryTabActivated) {
+        onStoryTabActivated();
+      }
+    }
+  }, [shouldActivateStoryTab, storyData, onStoryTabActivated]);
 
   // Automatically select "Story Facts" tab when GO button is clicked
   useEffect(() => {
@@ -528,35 +570,51 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   // Display logic for facts based on active tab
   const getCurrentFacts = () => {
     if (activeTab === 0) {
-      // Story Facts tab
-      return storyFacts.length > 0 ? storyFacts : [
-        "No facts extracted yet. Use the search bar above to analyze an article.",
-        "Enter a valid URL and click 'Go' to extract key facts from news articles.",
-        "AI will analyze the content and identify important information."
-      ];
-    } else if (activeTab === 1) {
-      // Related Facts & Data tab
-      return chunkFacts.length > 0 ? chunkFacts : [
-        "Related facts are being processed...",
-        "This may take a few moments to complete.",
-        "Additional context will appear here when ready."
-      ];
-    } else if (activeTab === 2) {
-      // Sources tab
-      const sources = chunkFactsData?.chunk_facts?.sources || [];
-      if (sources.length > 0) {
-        return sources.map((source: any) => source.title || 'Untitled Source');
-      } else if (chunkFactsReady) {
-        return [
-          "No sources found for this article.",
-          "Sources will appear here when available from the analysis."
-        ];
+      // Story Facts tab - prioritize story data if available
+      if (storyData?.facts?.story_facts && storyData.facts.story_facts.length > 0) {
+        return storyData.facts.story_facts.map(fact => fact.text);
+      } else if (storyFacts.length > 0) {
+        return storyFacts;
       } else {
         return [
-          "Sources are being processed...",
-          "This may take a few moments to complete.",
-          "Source links will appear here when ready."
+          "No facts extracted yet. Use the search bar above to analyze an article.",
+          "Enter a valid URL and click 'Go' to extract key facts from news articles.",
+          "AI will analyze the content and identify important information."
         ];
+      }
+    } else if (activeTab === 1) {
+      // Related Facts & Data tab - prioritize story data if available
+      if (storyData?.facts?.related_facts && storyData.facts.related_facts.length > 0) {
+        return storyData.facts.related_facts.map(fact => fact.text);
+      } else if (chunkFacts.length > 0) {
+        return chunkFacts;
+      } else {
+        return [
+          "Related facts are being processed...",
+          "This may take a few moments to complete.",
+          "Additional context will appear here when ready."
+        ];
+      }
+    } else if (activeTab === 2) {
+      // Sources tab - prioritize story data if available
+      if (storyData?.sources && storyData.sources.length > 0) {
+        return storyData.sources.map(source => source.url);
+      } else {
+        const sources = chunkFactsData?.chunk_facts?.sources || [];
+        if (sources.length > 0) {
+          return sources.map((source: any) => source.title || 'Untitled Source');
+        } else if (chunkFactsReady) {
+          return [
+            "No sources found for this article.",
+            "Sources will appear here when available from the analysis."
+          ];
+        } else {
+          return [
+            "Sources are being processed...",
+            "This may take a few moments to complete.",
+            "Source links will appear here when ready."
+          ];
+        }
       }
     }
     return [
@@ -580,7 +638,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   return (
     <div className="main-content">
       <div className="content-header">
-        <h1>Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero</h1>
+        <h1>{storyData?.story?.title || "Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero"}</h1>
       </div>
 
       <div className="tabs">
@@ -589,15 +647,23 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           const isRelatedFacts = index === 1;
           const isSources = index === 2;
           const sources = chunkFactsData?.chunk_facts?.sources || [];
-          const isDisabled = (isStoryFacts && storyFacts.length === 0) ||
-                           (isRelatedFacts && (!chunkFactsReady || chunkFacts.length === 0)) ||
-                           (isSources && (!chunkFactsReady || sources.length === 0));
+          const isDisabled = (isStoryFacts && !storyData?.facts?.story_facts?.length && storyFacts.length === 0) ||
+                           (isRelatedFacts && !storyData?.facts?.related_facts?.length && (!chunkFactsReady || chunkFacts.length === 0)) ||
+                           (isSources && !storyData?.sources?.length && (!chunkFactsReady || sources.length === 0));
 
           return (
             <button
               key={index}
               className={`tab ${activeTab === index ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
-              onClick={() => !isDisabled && setActiveTab(index)}
+              onClick={() => {
+                if (!isDisabled) {
+                  setActiveTab(index);
+                  // Reset showAllFacts when switching to Sources tab since it doesn't use Show More/Less
+                  if (index === 2) {
+                    setShowAllFacts(false);
+                  }
+                }
+              }}
               disabled={isDisabled}
             >
               {tab}
@@ -611,28 +677,82 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           <div className={`facts-container ${showAllFacts ? 'expanded' : ''}`}>
             <ul className="facts-list">
               {factsToShow.map((fact, index) => {
-                const isPlaceholder = (activeTab === 0 && storyFacts.length === 0) ||
-                                    (activeTab === 1 && chunkFacts.length === 0) ||
-                                    (activeTab === 2 && (!chunkFactsReady || (chunkFactsData?.chunk_facts?.sources || []).length === 0));
+                const isPlaceholder = (activeTab === 0 && !storyData?.facts?.story_facts && storyFacts.length === 0) ||
+                                    (activeTab === 1 && !storyData?.facts?.related_facts && chunkFacts.length === 0) ||
+                                    (activeTab === 2 && !storyData?.sources && (!chunkFactsReady || (chunkFactsData?.chunk_facts?.sources || []).length === 0));
 
                 // Handle Sources tab with clickable links
                 if (activeTab === 2 && !isPlaceholder) {
-                  const sources = chunkFactsData?.chunk_facts?.sources || [];
-                  const source = sources[index];
-                  if (source && source.url) {
-                    return (
-                      <li key={index} className="extracted-fact source-fact">
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="source-link"
-                        >
-                          {fact}
-                        </a>
-                      </li>
-                    );
+                  // Check if we have story data sources first
+                  if (storyData?.sources && storyData.sources.length > 0) {
+                    const source = storyData.sources[index];
+                    if (source && source.url) {
+                      return (
+                        <li key={index} className="extracted-fact source-fact">
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="source-link"
+                          >
+                            {fact}
+                          </a>
+                        </li>
+                      );
+                    }
+                  } else {
+                    // Fallback to chunk facts sources
+                    const sources = chunkFactsData?.chunk_facts?.sources || [];
+                    const source = sources[index];
+                    if (source && source.url) {
+                      return (
+                        <li key={index} className="extracted-fact source-fact">
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="source-link"
+                          >
+                            {fact}
+                          </a>
+                        </li>
+                      );
+                    }
                   }
+                }
+
+                // Handle Story Facts and Related Facts with source URLs
+                if ((activeTab === 0 || activeTab === 1) && !isPlaceholder) {
+                  let sourceUrl = null;
+
+                  if (activeTab === 0 && storyData?.facts?.story_facts) {
+                    const storyFact = storyData.facts.story_facts[index];
+                    sourceUrl = storyFact?.metadata?.source_url;
+                  } else if (activeTab === 1 && storyData?.facts?.related_facts) {
+                    const relatedFact = storyData.facts.related_facts[index];
+                    sourceUrl = relatedFact?.metadata?.source_url;
+                  }
+
+                  return (
+                    <li key={index} className={isPlaceholder ? 'placeholder-fact' : 'extracted-fact'}>
+                      <span className="fact-text">
+                        {fact}
+                        {sourceUrl && (
+                          <>
+                            {' '}
+                            <a
+                              href={sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="source-link-small"
+                            >
+                              Source
+                            </a>
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  );
                 }
 
                 return (
@@ -829,6 +949,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
         </div> {/* End of bottom-sections */}
       </div>
+
+      {/* Loading Overlay for Story Data */}
+      {isLoadingStory && (
+        <div className="simple-loading-overlay">
+          <div className="simple-spinner"></div>
+          <div style={{ marginTop: '16px', color: '#374151', fontSize: '14px' }}>
+            Loading story data...
+          </div>
+        </div>
+      )}
 
       {/* No Facts Popup */}
       <NoFactsPopup
