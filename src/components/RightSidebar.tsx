@@ -184,9 +184,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
         {selectedOption === 'campaign' ? (
           // Campaign Suggestions View - Combined paragraph
           <div className="content-section">
-            <div className="section-header">
-              <h4 className="section-title">Campaign Suggestion</h4>
-            </div>
             <p className="section-content">
               {getCombinedCampaignSuggestion()}
             </p>

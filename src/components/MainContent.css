@@ -2,17 +2,47 @@
   flex: 1;
   background-color: #D9D8CB;
   border-radius: 12px;
-  padding: 20px 20px 0px 20px; /* Bottom padding set to 0px */
-  max-width: 560px;
-  margin-right: 2px;
-  min-height: 800px;
-  max-height: 800px; /* Match right sidebar height */
+  padding: 20px;
+  margin-right: 0;
+  min-height: 600px;
   display: flex;
   flex-direction: column;
   position: relative;
   min-width: 0; /* Allow shrinking below content size */
   overflow-x: hidden; /* Prevent horizontal scroll */
-  overflow-y: hidden; /* Prevent vertical overflow to maintain height */
+  overflow-y: auto; /* Allow vertical scroll if needed */
+  --component-height: auto;
+}
+
+@media (max-width: 1200px) {
+  .main-content {
+    min-height: 550px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    min-height: auto;
+    max-height: 70vh;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    min-height: auto;
+    max-height: 60vh;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    min-height: auto;
+    max-height: 50vh;
+    padding: 10px;
+  }
 }
 
 .content-header {
@@ -21,6 +51,7 @@
   align-items: flex-start;
   margin-bottom: 20px;
   gap: 20px;
+  flex-wrap: wrap;
 }
 
 .content-header h1 {
@@ -32,12 +63,14 @@
   line-height: 1.2;
   letter-spacing: 0.01em;
   flex: 1;
+  min-width: 200px;
 }
 
 .action-buttons {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .suggestion-btn, .options-btn {
@@ -46,8 +79,9 @@
   border-radius: 6px;
   background-color: #f8f5f0;
   color: #374151;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .undo-btn {
@@ -56,7 +90,7 @@
   border-radius: 6px;
   background-color: #f8f5f0;
   color: #6b7280;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -69,6 +103,129 @@
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+}
+
+@media (max-width: 1200px) {
+  .content-header {
+    margin-bottom: 16px;
+    gap: 16px;
+  }
+
+  .content-header h1 {
+    font-size: 18px;
+  }
+
+  .suggestion-btn, .options-btn {
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+
+  .tabs {
+    margin-bottom: 16px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-header {
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+
+  .content-header h1 {
+    font-size: 16px;
+  }
+
+  .suggestion-btn, .options-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .tabs {
+    margin-bottom: 12px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-header {
+    flex-direction: column;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+
+  .content-header h1 {
+    font-size: 14px;
+  }
+
+  .action-buttons {
+    width: 100%;
+  }
+
+  .suggestion-btn, .options-btn {
+    padding: 4px 6px;
+    font-size: 11px;
+    flex: 1;
+  }
+
+  .tabs {
+    margin-bottom: 10px;
+    gap: 4px;
+  }
+}
+
+/* Content body - main container for facts and bottom sections */
+.content-body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
+  height: auto;
+  max-height: 680px;
+  transition: height 0.3s ease, max-height 0.3s ease;
+}
+
+/* When facts are expanded, lock the height to 680px */
+.content-body.expanded-facts {
+  height: 680px;
+  min-height: 680px;
+  max-height: 680px;
+}
+
+@media (max-width: 1024px) {
+  .content-body {
+    max-height: 500px;
+  }
+
+  .content-body.expanded-facts {
+    height: 500px;
+    min-height: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .content-body {
+    max-height: 450px;
+  }
+
+  .content-body.expanded-facts {
+    height: 450px;
+    min-height: 450px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-body {
+    max-height: 400px;
+  }
+
+  .content-body.expanded-facts {
+    height: 400px;
+    min-height: 400px;
+  }
 }
 
 /* Base tab styles */
@@ -80,7 +237,7 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   font-style: normal;
-  font-size: 10px;
+  font-size: 14px;
   line-height: 9px;
   letter-spacing: 0.01em;
   text-align: center;
@@ -147,6 +304,16 @@
   color: #a0a0a0;
 }
 
+.main-text {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
 .main-text h2 {
   font-size: 16px;
   font-weight: 600;
@@ -160,31 +327,40 @@
 }
 
 .facts-container {
-  height: 200px;
+  flex: 0 0 220px;
   overflow-y: auto;
+  overflow-x: hidden;
   margin-bottom: 18px;
   padding: 12px;
   padding-right: 20px;
-  transition: height 0.3s ease;
+  transition: flex-basis 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Expanded facts container when showing more facts */
+/* Expanded facts container when showing more facts - increase by 80% */
 .facts-container.expanded {
-  height: 400px;
+  flex: 0 0 396px;
 }
 
 /* Bottom sections wrapper */
 .bottom-sections {
-  transition: all 0.3s ease;
+  transition: flex-basis 0.3s ease, overflow 0.3s ease;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  max-height: fit-content;
 }
 
-/* Compressed bottom sections when facts are expanded */
+/* Compressed bottom sections when facts are expanded - decrease by 80% */
 .bottom-sections.compressed {
-  margin-top: -10px;
+  flex: 0 0 82px;
+  overflow: hidden;
+  max-height: 82px;
 }
 
 .bottom-sections.compressed .social-section,
@@ -194,7 +370,13 @@
 }
 
 .bottom-sections.compressed h3 {
-  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 17px;
+  letter-spacing: 0.01em;
+  color: #93279C;
   margin-bottom: 8px;
 }
 
@@ -204,7 +386,7 @@
 
 .bottom-sections.compressed .channel-btn {
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: 14px;
   min-width: auto;
 }
 
@@ -214,7 +396,7 @@
 
 .bottom-sections.compressed .action-btn {
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: 14px;
   min-width: auto;
 }
 
@@ -225,7 +407,7 @@
 
 .bottom-sections.compressed .characteristic-tag {
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .bottom-sections.compressed .create-campaign {
@@ -281,6 +463,10 @@
   color: #363636;
   position: relative;
   border-left: 4px solid transparent;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .main-text .facts-list .extracted-fact {
@@ -329,6 +515,11 @@
   text-decoration: none;
   transition: all 0.2s ease;
   border-bottom: 1px solid transparent;
+  word-break: break-all;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  display: block;
+  max-width: 100%;
 }
 
 .source-fact .source-link:hover {
@@ -381,7 +572,7 @@
   height: 40px;
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .show-more-btn {
@@ -393,11 +584,11 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   font-style: normal;
-  font-size: 10px;
+  font-size: 14px;
   line-height: 9px;
   letter-spacing: 0.01em;
-  margin-top: -4px;
-  margin-bottom: 5px;
+  margin-top: 0;
+  margin-bottom: 0;
   text-decoration: none;
   transition: all 0.3s ease;
   position: relative;
@@ -449,33 +640,47 @@
   height: 2px;
   background-color: #f8f5f0;
   margin: 20px -24px;
+  flex-shrink: 0;
 }
 
 .social-section h3 {
-  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   font-weight: 600;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 17px;
+  letter-spacing: 0.01em;
   color: #93279C;
   margin-bottom: 8px;
 }
 
 .goal-section h3 {
-  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   font-weight: 600;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 17px;
+  letter-spacing: 0.01em;
   color: #93279C;
   margin-bottom: 8px;
 }
 
 .voice-section h3 {
-  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   font-weight: 600;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 17px;
+  letter-spacing: 0.01em;
   color: #93279C;
   margin-bottom: 8px;
 }
 
 .social-channels {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .channel-btn {
@@ -489,8 +694,8 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -501,6 +706,7 @@
   text-align: center;
   vertical-align: middle;
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 /* Hover removed */
@@ -515,18 +721,23 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .goal-section {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .goal-section h3 {
-  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
   font-weight: 600;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 17px;
+  letter-spacing: 0.01em;
   color: #93279C;
   margin-bottom: 8px;
 }
@@ -535,7 +746,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .goal-btn {
@@ -549,8 +760,8 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -574,8 +785,8 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
 }
 
@@ -584,8 +795,8 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
   text-align: center;
   color: #93279C;
@@ -598,8 +809,8 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
   text-align: center;
   color: #93279C;
@@ -625,7 +836,7 @@
 }
 
 .voice-section {
-  margin-bottom: 20px;
+  margin-bottom: 0;
   width: 100%;
   overflow: hidden;
 }
@@ -649,8 +860,8 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
   border-radius: 24px;
   cursor: pointer;
@@ -680,17 +891,19 @@
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-style: normal;
-  font-size: 10px;
-  line-height: 9px;
+  font-size: 14px;
+  line-height: 20px;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .create-campaign {
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: 5px;
   width: 100%;
   position: relative;
   overflow: visible;
+  flex-shrink: 0;
 }
 
 /* New layout for campaign section with URL dropdown on far left */
@@ -1409,7 +1622,7 @@
   /* Tablet responsive - maintain specific widths */
   .tab {
     height: 42px;
-    font-size: 9px;
+    font-size: 14px;
     line-height: 8px;
     gap: 6px;
   }
@@ -1448,11 +1661,11 @@
   }
 
   .facts-container {
-    height: 180px;
+    flex: 0 0 180px;
   }
 
   .facts-container.expanded {
-    height: 300px;
+    flex: 0 0 324px;
   }
 
   .social-channels {
@@ -1466,8 +1679,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 9px;
-    line-height: 8px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 3px 10px;
     border-radius: 22px;
@@ -1479,8 +1692,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 9px;
-    line-height: 8px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 3px 10px;
   }
@@ -1495,7 +1708,7 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 9px;
+    font-size: 14px;
     line-height: 8px;
     letter-spacing: 0.01em;
     padding: 3px 10px;
@@ -1508,22 +1721,34 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 9px;
+    font-size: 14px;
     line-height: 8px;
     letter-spacing: 0.01em;
     padding: 3px 10px;
   }
 
   .goal-description {
-    font-size: 9px;
-    line-height: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    text-align: center;
+    color: #93279C;
     margin-top: 10px;
     padding: 0 12px;
   }
 
   .social-description {
-    font-size: 9px;
-    line-height: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    text-align: center;
+    color: #93279C;
     margin-top: 10px;
     padding: 0 12px;
   }
@@ -1538,8 +1763,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 9px;
-    line-height: 8px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 3px 10px;
     border-radius: 22px;
@@ -1551,8 +1776,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 9px;
-    line-height: 8px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 3px 10px;
   }
@@ -1591,7 +1816,7 @@
   /* Mobile responsive - maintain specific widths */
   .tab {
     height: 38px;
-    font-size: 8px;
+    font-size: 14px;
     line-height: 7px;
     gap: 6px;
   }
@@ -1630,12 +1855,12 @@
   }
 
   .facts-container {
-    height: 160px;
+    flex: 0 0 160px;
     padding: 10px;
   }
 
   .facts-container.expanded {
-    height: 280px;
+    flex: 0 0 288px;
   }
 
   .channel-btn {
@@ -1644,8 +1869,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 8px;
-    line-height: 7px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 2px 8px;
     border-radius: 20px;
@@ -1657,8 +1882,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 8px;
-    line-height: 7px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 2px 8px;
   }
@@ -1669,8 +1894,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 8px;
-    line-height: 7px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 2px 8px;
     border-radius: 20px;
@@ -1682,22 +1907,34 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 8px;
-    line-height: 7px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 2px 8px;
   }
 
   .goal-description {
-    font-size: 8px;
-    line-height: 7px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    text-align: center;
+    color: #93279C;
     margin-top: 8px;
     padding: 0 8px;
   }
 
   .social-description {
-    font-size: 8px;
-    line-height: 7px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.01em;
+    text-align: center;
+    color: #93279C;
     margin-top: 8px;
     padding: 0 8px;
   }
@@ -1708,8 +1945,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 8px;
-    line-height: 7px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 2px 8px;
     border-radius: 20px;
@@ -1721,8 +1958,8 @@
     font-family: 'Poppins', sans-serif;
     font-weight: 500;
     font-style: normal;
-    font-size: 8px;
-    line-height: 7px;
+    font-size: 14px;
+    line-height: 20px;
     letter-spacing: 0.01em;
     padding: 2px 8px;
   }
@@ -1748,15 +1985,15 @@
   }
 
   .channel-btn {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .action-btn {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .characteristic-tag {
-    font-size: 12px;
+    font-size: 14px;
   }
 }
 
@@ -1773,23 +2010,29 @@
   }
 
   .bottom-sections.compressed h3 {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-style: normal;
     font-size: 12px;
+    line-height: 17px;
+    letter-spacing: 0.01em;
+    color: #93279C;
     margin-bottom: 6px;
   }
 
   .bottom-sections.compressed .channel-btn {
     padding: 5px 8px;
-    font-size: 11px;
+    font-size: 14px;
   }
 
   .bottom-sections.compressed .action-btn {
     padding: 5px 8px;
-    font-size: 11px;
+    font-size: 14px;
   }
 
   .bottom-sections.compressed .characteristic-tag {
     padding: 4px 8px;
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .bottom-sections.compressed .campaign-btn {
@@ -1801,17 +2044,17 @@
 @media (max-width: 480px) {
   .bottom-sections.compressed .channel-btn {
     padding: 4px 6px;
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .bottom-sections.compressed .action-btn {
     padding: 4px 6px;
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .bottom-sections.compressed .characteristic-tag {
     padding: 3px 6px;
-    font-size: 9px;
+    font-size: 14px;
   }
 
   /* Additional responsive fixes for characteristic tags */
@@ -1821,7 +2064,7 @@
 
   .characteristic-tag {
     padding: 6px 10px;
-    font-size: 12px;
+    font-size: 14px;
     max-width: calc(50% - 2px);
     overflow: hidden;
     text-overflow: ellipsis;

@@ -58,6 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
 
   // Fetch campaigns from API
   useEffect(() => {
@@ -84,13 +85,49 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
 
   // Get unique categories from campaigns
   const getCategories = () => {
-    const uniqueCategories = new Set(['All']);
+    const uniqueCategories = new Set();
     campaigns.forEach(campaign => {
       if (campaign.causes && campaign.causes.length > 0) {
         uniqueCategories.add(campaign.causes[0].name);
       }
     });
-    return Array.from(uniqueCategories).map((name, index) => ({
+
+    // Convert to array and sort alphabetically
+    const allCategories = Array.from(uniqueCategories).sort();
+    console.log('All categories before ordering:', allCategories);
+
+    // Create final order with explicit positioning
+    const finalCategories = ['All'];
+
+    // Find Women's Rights with more robust checking
+    const womensRightsCategory = allCategories.find(cat =>
+      cat.toLowerCase().includes("women") && cat.toLowerCase().includes("right")
+    );
+
+    console.log('Found womens rights category:', womensRightsCategory);
+
+    // Add Women's Rights as second if it exists
+    if (womensRightsCategory) {
+      console.log('Adding Women\'s Rights as second');
+      finalCategories.push(womensRightsCategory);
+
+      // Add all other categories except Women's Rights
+      allCategories.forEach(category => {
+        if (category !== womensRightsCategory) {
+          console.log('Adding other category:', category);
+          finalCategories.push(category);
+        }
+      });
+    } else {
+      console.log('Women\'s Rights not found, adding all categories');
+      // If Women's Rights doesn't exist, just add all other categories
+      finalCategories.push(...allCategories);
+    }
+
+    // Debug logging
+    console.log('Final categories order:', finalCategories);
+
+    return finalCategories.map((name, index) => ({
       name,
       active: index === activeCategory
     }));
@@ -129,12 +166,40 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
   const getCategoryIcon = (categoryName: string) => {
     if (!categoryName) return null;
 
+    console.log(`Getting category icon for: "${categoryName}"`);
+
     try {
-      // Convert category name to lowercase and replace spaces with hyphens
+      // Map category names to the new JPG files
+      const categoryMapping: { [key: string]: string } = {
+        'Corruption': 'Corruption.jpg',
+        'Economy': 'Economy.jpg',
+        'Immigration': 'Immigration.jpg',
+        'Women\'s Rights': 'WomensRights.jpg',
+        'Womens Rights': 'WomensRights.jpg',
+        'Woman\'s Rights': 'WomensRights.jpg'
+      };
+
+      let fileName = categoryMapping[categoryName];
+
+      // Special handling for Women's Rights with different apostrophe types
+      if (!fileName && categoryName.toLowerCase().includes('women') && categoryName.toLowerCase().includes('rights')) {
+        fileName = 'WomensRights.jpg';
+        console.log(`Using special Women's Rights mapping`);
+      }
+
+      console.log(`Mapped to filename: "${fileName}"`);
+
+      if (fileName) {
+        const iconUrl = new URL(`../assets/categories/${fileName}`, import.meta.url).href;
+        console.log(`Icon URL: ${iconUrl}`);
+        return iconUrl;
+      }
+
+      // Fallback: try original naming convention
       const categorySlug = categoryName.toLowerCase().replace(/\s+/g, '-').replace(/'/g, '');
       return new URL(`../assets/categories/${categorySlug}.svg`, import.meta.url).href;
     } catch (error) {
-      console.log(`Failed to load category icon for: "${categoryName}"`);
+      console.log(`Failed to load category icon for: "${categoryName}"`, error);
       return null;
     }
   };
@@ -144,6 +209,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
   };
 
   const handleCampaignCardClick = (campaignId: number) => {
+    setSelectedCampaignId(campaignId);
     if (onStoryCardClick) {
       onStoryCardClick(campaignId);
     }
@@ -165,6 +231,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
   const transformedCampaigns = filteredCampaigns.map((campaign, index) => ({
     id: campaign.id,
     title: campaign.jurisdictions && campaign.jurisdictions.length > 0 ? campaign.jurisdictions[0].name : 'Unknown State', // Use state name as title
+    actualTitle: campaign.title || 'No Title', // Use actual campaign title for display
     subtitle: campaign.causes && campaign.causes.length > 0 ? campaign.causes[0].name : '',
     description: campaign.summary ? campaign.summary.substring(0, 200) + (campaign.summary.length > 200 ? '...' : '') : '',
     image: campaign.hero_image_url || 'https://via.placeholder.com/86x86',
@@ -195,7 +262,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
 
       <div className="campaigns">
         {loading ? (
-          <div className="loading-message">Loading campaigns...</div>
+          <div className="simple-loading-overlay">
+            <div className="simple-spinner"></div>
+          </div>
         ) : error ? (
           <div className="error-message">Error: {error}</div>
         ) : (
@@ -230,7 +299,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
               transformedCampaigns.map((campaign) => (
           <div
             key={campaign.id}
-            className={`campaign-card ${campaign.hasLargeImage ? 'large-card' : 'small-card'} ${!campaign.hasLargeImage ? 'state-card' : ''}`}
+            className={`campaign-card ${campaign.hasLargeImage ? 'large-card' : 'small-card'} ${!campaign.hasLargeImage ? 'state-card' : ''} ${selectedCampaignId === campaign.id ? 'active' : ''}`}
             onClick={() => handleCampaignCardClick(campaign.id)}
             style={{ cursor: 'pointer' }}
           >
@@ -264,57 +333,41 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
             ) : (
               <div className="small-campaign" style={{position: 'relative'}}>
                 {console.log('Rendering small campaign:', campaign.title)}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleShareClick(campaign.title);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '0px',
-                    right: '8px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '6px',
-                    cursor: 'pointer',
-                    zIndex: 999,
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                >
-                  {shareButtonIcon ? (
-                    <img src={shareButtonIcon} alt="Share" style={{width: '14px', height: '14px'}} />
-                  ) : (
-                    '📤'
-                  )}
-                </button>
                 <div className="campaign-header">
-                  <div className="campaign-icon" style={{
-                    backgroundColor: campaign.stateIcon ? 'transparent' : campaign.bgColor,
-                    border: campaign.stateIcon ? 'none' : undefined,
-                    borderRadius: campaign.stateIcon ? '0' : undefined,
-                    padding: campaign.stateIcon ? '0' : undefined
-                  }}>
-                    {campaign.stateIcon ? (
-                      <img src={campaign.stateIcon} alt={campaign.title} className="state-icon" style={{width: '24px', height: '24px'}} />
-                    ) : (
-                      <span>{campaign.icon}</span>
-                    )}
-                  </div>
-                  <div className="campaign-info">
-                    <h4>{campaign.title}</h4>
-                    {campaign.subtitle && <p>{campaign.subtitle}</p>}
+                  <div className="campaign-info" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 12px', marginBottom: '0'}}>
+                    {campaign.subtitle && <p style={{margin: '0', flex: '1'}}>{campaign.subtitle}</p>}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShareClick(campaign.title);
+                      }}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px',
+                        cursor: 'pointer',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s',
+                        flexShrink: 0
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      {shareButtonIcon ? (
+                        <img src={shareButtonIcon} alt="Share" style={{width: '14px', height: '14px'}} />
+                      ) : (
+                        '📤'
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="small-campaign-content">
@@ -325,11 +378,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
                           src={campaign.categoryIcon}
                           alt={`${campaign.category} icon`}
                           className="category-icon"
-                          style={{width: '50px', height: '50px', marginRight: '12px', flexShrink: 0}}
+                          style={{width: '72px', height: '72px', marginRight: '12px', flexShrink: 0, borderRadius: '6px'}}
                         />
                       )}
-                      {campaign.description && (
-                        <p className="description-text">{campaign.description.length > 100 ? campaign.description.substring(0, 100) + '...' : campaign.description}</p>
+                      {campaign.actualTitle && (
+                        <p className="description-text">{campaign.actualTitle}</p>
                       )}
                     </div>
                   </div>

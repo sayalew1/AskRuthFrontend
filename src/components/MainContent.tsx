@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './MainContent.css';
 import NoFactsPopup from './NoFactsPopup';
 
@@ -28,6 +28,33 @@ interface StoryData {
     url: string;
     title?: string;
   }>;
+  chips?: {
+    channels: Array<{
+      id: number;
+      code: string;
+      name: string;
+      character_limit: number;
+      image_aspect_ratio: string;
+      instructions: string;
+    }>;
+    goals: Array<{
+      id: number;
+      slug: string;
+      name: string;
+      description: string;
+    }>;
+    voices: Array<{
+      id: number;
+      slug: string;
+      name: string;
+      description: string;
+    }>;
+    selected: {
+      channels: number[];
+      goals: number[];
+      voices: number[];
+    };
+  };
 }
 
 interface MainContentProps {
@@ -46,6 +73,7 @@ interface MainContentProps {
 }
 
 const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated }) => {
+  const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
   const [activeSocialChannel, setActiveSocialChannel] = React.useState(0);
@@ -78,6 +106,29 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const [isNewUrlSession, setIsNewUrlSession] = React.useState(true);
   const [showUrlDropdown, setShowUrlDropdown] = React.useState(false);
   const [showNoFactsPopup, setShowNoFactsPopup] = React.useState(false);
+
+  // Effect to measure and sync component height with right sidebar
+  useEffect(() => {
+    const updateHeight = () => {
+      if (mainContentRef.current) {
+        const height = mainContentRef.current.scrollHeight;
+        document.documentElement.style.setProperty('--component-height', `${height}px`);
+      }
+    };
+
+    // Update on mount and when content changes
+    updateHeight();
+
+    // Use ResizeObserver to watch for size changes
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (mainContentRef.current) {
+      resizeObserver.observe(mainContentRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Effect to activate Story Facts tab when story data is loaded
   useEffect(() => {
@@ -113,25 +164,79 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     }
   }, [chunkFacts.length]);
 
-  const socialChannels = [
+  // Set default selections based on API chips data
+  useEffect(() => {
+    if (storyData?.chips?.selected) {
+      const { channels, goals, voices } = storyData.chips.selected;
+
+      // Set default channel selection (use first selected channel or 0)
+      if (channels && channels.length > 0 && storyData.chips.channels) {
+        const channelIndex = storyData.chips.channels.findIndex(ch => ch.id === channels[0]);
+        if (channelIndex !== -1) {
+          setActiveSocialChannel(channelIndex);
+        }
+      }
+
+      // Set default goal selection (use first selected goal or 0)
+      if (goals && goals.length > 0 && storyData.chips.goals) {
+        const goalIndex = storyData.chips.goals.findIndex(g => g.id === goals[0]);
+        if (goalIndex !== -1) {
+          setActiveActionButton(goalIndex);
+        }
+      }
+
+      // Set default voice selection (use first selected voice or 0)
+      if (voices && voices.length > 0 && storyData.chips.voices) {
+        const voiceIndex = storyData.chips.voices.findIndex(v => v.id === voices[0]);
+        if (voiceIndex !== -1) {
+          setActiveCharacteristic(voiceIndex);
+        }
+      }
+    } else {
+      // Reset to defaults when no story data or switching to a story without chips
+      setActiveSocialChannel(0);
+      setActiveActionButton(0);
+      setActiveCharacteristic(0);
+    }
+  }, [storyData]);
+
+  // Default buttons (fallback when no chips data available)
+  const defaultSocialChannels = [
     { name: 'Plain Text', active: true, description: null },
     { name: 'Instagram', active: false, description: "Coming Soon" },
     { name: 'Facebook', active: false, description: "Coming Soon" },
     { name: 'Blue Sky', active: false, description: "Coming Soon" }
   ];
 
-  const actionButtons = [
+  const defaultActionButtons = [
     { name: 'Donate', color: '#dc2626', description: "Suport NPO's or crowdfund your own Cause" },
     { name: 'Spread the Word', color: '#059669', description: "Get the word out on issues that you care about" },
     { name: 'Go to a Protest', color: '#7c3aed', description: "Coming Soon" },
     { name: 'Contact your Rep', color: '#0891b2', description: "Coming Soon" }
   ];
 
-  const voiceOptions = ['Voice'];
-  const characteristicTags = [
+  const defaultCharacteristicTags = [
     'Charismatic', 'Logical', 'Passionate', 'Empathetic', 'Strategic',
     'Adversarial', 'Diplomatic', 'Empowered'
   ];
+
+  // Dynamic buttons from API or fallback to defaults
+  const socialChannels = storyData?.chips?.channels ?
+    storyData.chips.channels.map(channel => ({
+      name: channel.name,
+      active: true,
+      description: channel.instructions || null
+    })) : defaultSocialChannels;
+
+  const actionButtons = storyData?.chips?.goals ?
+    storyData.chips.goals.map(goal => ({
+      name: goal.name,
+      color: '#dc2626', // Default color, could be enhanced later
+      description: goal.description || "Coming Soon"
+    })) : defaultActionButtons;
+
+  const characteristicTags = storyData?.chips?.voices ?
+    storyData.chips.voices.map(voice => voice.name) : defaultCharacteristicTags;
 
   const handleCreateCampaign = async () => {
     if (!chunkFactsData || !isCreateCampaignEnabled()) return;
@@ -636,7 +741,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   };
 
   return (
-    <div className="main-content">
+    <div className="main-content" ref={mainContentRef}>
       <div className="content-header">
         <h1>{storyData?.story?.title || "Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero"}</h1>
       </div>
@@ -894,7 +999,6 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               {isCreatingCampaign ? (
                 <div className="button-loading-content">
                   <div className="button-spinner"></div>
-                  <span>Creating Campaign...</span>
                 </div>
               ) : (
                 (() => {
@@ -954,9 +1058,6 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       {isLoadingStory && (
         <div className="simple-loading-overlay">
           <div className="simple-spinner"></div>
-          <div style={{ marginTop: '16px', color: '#374151', fontSize: '14px' }}>
-            Loading story data...
-          </div>
         </div>
       )}
 

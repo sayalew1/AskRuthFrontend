@@ -157,7 +157,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
               {isLoading ? (
                 <div className="loading-content">
                   <div className="spinner"></div>
-                  <span>Extracting...</span>
                 </div>
               ) : (
                 'Go'

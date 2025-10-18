@@ -1,15 +1,18 @@
 .header {
   background-color: #f8f5f0;
   padding: 16px 0;
+  width: 100%;
 }
 
 .header-content {
-  width: 95%;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   padding: 0 20px;
+  max-width: 1600px;
+  box-sizing: border-box;
 }
 
 .logo {
@@ -30,8 +33,46 @@
   color: #333;
 }
 
+@media (max-width: 1200px) {
+  .header-content {
+    padding: 0 16px;
+  }
+
+  .logo-image {
+    height: 50px;
+  }
+
+  .logo-text {
+    font-size: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .header-content {
-    justify-content: center;
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
+  .logo-image {
+    height: 45px;
+  }
+
+  .logo-text {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    justify-content: flex-start;
+    padding: 0 8px;
+  }
+
+  .logo-image {
+    height: 40px;
+  }
+
+  .logo-text {
+    font-size: 18px;
   }
 }

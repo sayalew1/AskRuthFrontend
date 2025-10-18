@@ -44,6 +44,33 @@ interface StoryData {
     url: string;
     title?: string;
   }>;
+  chips?: {
+    channels: Array<{
+      id: number;
+      code: string;
+      name: string;
+      character_limit: number;
+      image_aspect_ratio: string;
+      instructions: string;
+    }>;
+    goals: Array<{
+      id: number;
+      slug: string;
+      name: string;
+      description: string;
+    }>;
+    voices: Array<{
+      id: number;
+      slug: string;
+      name: string;
+      description: string;
+    }>;
+    selected: {
+      channels: number[];
+      goals: number[];
+      voices: number[];
+    };
+  };
 }
 
 function App() {
