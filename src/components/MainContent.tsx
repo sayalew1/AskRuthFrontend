@@ -203,21 +203,21 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   // Default buttons (fallback when no chips data available)
   const defaultSocialChannels = [
     { name: 'Plain Text', active: true, description: null },
-    { name: 'Bluesky', active: false, description: null },
-    { name: 'Email', active: false, description: null },
-    { name: 'Facebook', active: false, description: null },
-    { name: 'Instagram', active: false, description: null },
-    { name: 'TikTok', active: false, description: null },
-    { name: 'Twitter/X', active: false, description: null },
-    { name: 'Website', active: false, description: null }
+    { name: 'Bluesky', active: false, description: 'Coming Soon' },
+    { name: 'Email', active: false, description: 'Coming Soon' },
+    { name: 'Facebook', active: false, description: 'Coming Soon' },
+    { name: 'Instagram', active: false, description: 'Coming Soon' },
+    { name: 'TikTok', active: false, description: 'Coming Soon' },
+    { name: 'Twitter/X', active: false, description: 'Coming Soon' },
+    { name: 'Website', active: false, description: 'Coming Soon' }
   ];
 
   const defaultActionButtons = [
-    { name: 'Contact Your Rep', color: '#dc2626', description: null },
-    { name: 'Donate', color: '#059669', description: null },
-    { name: 'Go to a Protest', color: '#7c3aed', description: null },
-    { name: 'Spread the Word', color: '#0891b2', description: null },
-    { name: 'Volunteer', color: '#f59e0b', description: null }
+    { name: 'Donate', color: '#059669', description: "Support NPO's or crowdfund your own Cause" },
+    { name: 'Spread the Word', color: '#0891b2', description: 'Get the word out on issues that you care about' },
+    { name: 'Go to a Protest', color: '#7c3aed', description: 'Coming Soon' },
+    { name: 'Contact Your Rep', color: '#dc2626', description: 'Coming Soon' },
+    { name: 'Volunteer', color: '#f59e0b', description: 'Coming Soon' }
   ];
 
   const defaultCharacteristicTags = [
@@ -227,18 +227,70 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   // Dynamic buttons from API or fallback to defaults
   const socialChannels = storyData?.chips?.channels ?
-    storyData.chips.channels.map(channel => ({
-      name: channel.name,
-      active: true,
-      description: channel.instructions || null
-    })) : defaultSocialChannels;
+    (() => {
+      // Transform API channels: convert "Text" to "Plain Text"
+      let channels = storyData.chips.channels.map(channel => {
+        const name = channel.name === 'Text' ? 'Plain Text' : channel.name;
+        // Show "Coming Soon" for all channels except Plain Text
+        const description = name === 'Plain Text' ? (channel.instructions || null) : 'Coming Soon';
+        return {
+          name,
+          active: true,
+          description: description || null
+        };
+      });
+
+      // Sort to put "Plain Text" first if it exists
+      const plainTextIndex = channels.findIndex(c => c.name === 'Plain Text');
+      if (plainTextIndex > 0) {
+        const plainText = channels.splice(plainTextIndex, 1)[0];
+        channels.unshift(plainText);
+      }
+
+      return channels;
+    })() : defaultSocialChannels;
 
   const actionButtons = storyData?.chips?.goals ?
-    storyData.chips.goals.map(goal => ({
-      name: goal.name,
-      color: '#dc2626', // Default color, could be enhanced later
-      description: goal.description || "Coming Soon"
-    })) : defaultActionButtons;
+    (() => {
+      // Transform API goals and sort to put "Donate" first and "Spread the Word" second
+      let goals = storyData.chips.goals.map(goal => {
+        // Show "Coming Soon" for all goals except Donate and Spread the Word
+        const isAvailable = goal.name === 'Donate' || goal.name === 'Spread the Word';
+        let description = 'Coming Soon';
+
+        if (isAvailable) {
+          if (goal.name === 'Donate') {
+            description = "Support NPO's or crowdfund your own Cause";
+          } else if (goal.name === 'Spread the Word') {
+            description = 'Get the word out on issues that you care about';
+          } else {
+            description = goal.description || 'Coming Soon';
+          }
+        }
+
+        return {
+          name: goal.name,
+          color: '#dc2626', // Default color, could be enhanced later
+          description
+        };
+      });
+
+      // Sort to put "Donate" first and "Spread the Word" second if they exist
+      const donateIndex = goals.findIndex(g => g.name === 'Donate');
+      const spreadIndex = goals.findIndex(g => g.name === 'Spread the Word');
+
+      if (donateIndex > 0) {
+        const donate = goals.splice(donateIndex, 1)[0];
+        goals.unshift(donate);
+      }
+
+      if (spreadIndex > 1 || (spreadIndex > 0 && donateIndex === 0)) {
+        const spread = goals.splice(spreadIndex, 1)[0];
+        goals.splice(1, 0, spread);
+      }
+
+      return goals;
+    })() : defaultActionButtons;
 
   const characteristicTags = storyData?.chips?.voices ?
     storyData.chips.voices.map(voice => voice.name) : defaultCharacteristicTags;
