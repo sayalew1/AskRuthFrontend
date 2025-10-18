@@ -203,21 +203,26 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   // Default buttons (fallback when no chips data available)
   const defaultSocialChannels = [
     { name: 'Plain Text', active: true, description: null },
-    { name: 'Instagram', active: false, description: "Coming Soon" },
-    { name: 'Facebook', active: false, description: "Coming Soon" },
-    { name: 'Blue Sky', active: false, description: "Coming Soon" }
+    { name: 'Bluesky', active: false, description: null },
+    { name: 'Email', active: false, description: null },
+    { name: 'Facebook', active: false, description: null },
+    { name: 'Instagram', active: false, description: null },
+    { name: 'TikTok', active: false, description: null },
+    { name: 'Twitter/X', active: false, description: null },
+    { name: 'Website', active: false, description: null }
   ];
 
   const defaultActionButtons = [
-    { name: 'Donate', color: '#dc2626', description: "Suport NPO's or crowdfund your own Cause" },
-    { name: 'Spread the Word', color: '#059669', description: "Get the word out on issues that you care about" },
-    { name: 'Go to a Protest', color: '#7c3aed', description: "Coming Soon" },
-    { name: 'Contact your Rep', color: '#0891b2', description: "Coming Soon" }
+    { name: 'Contact Your Rep', color: '#dc2626', description: null },
+    { name: 'Donate', color: '#059669', description: null },
+    { name: 'Go to a Protest', color: '#7c3aed', description: null },
+    { name: 'Spread the Word', color: '#0891b2', description: null },
+    { name: 'Volunteer', color: '#f59e0b', description: null }
   ];
 
   const defaultCharacteristicTags = [
-    'Charismatic', 'Logical', 'Passionate', 'Empathetic', 'Strategic',
-    'Adversarial', 'Diplomatic', 'Empowered'
+    'Charismatic', 'Diplomatic', 'Empathetic', 'Empowered', 'Logical',
+    'Passionate', 'Strategic'
   ];
 
   // Dynamic buttons from API or fallback to defaults
@@ -244,17 +249,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     setIsCreatingCampaign(true);
     try {
       // Map the selected options to the expected format
-      const socialChannelMap = ['Plain Text', 'Instagram', 'Facebook', 'Blue Sky'];
-      const goalMap = ['donate', 'spread', 'protest', 'contact'];
+      const socialChannelMap = ['plain_text', 'bluesky', 'email', 'facebook', 'instagram', 'tiktok', 'twitter', 'website'];
+      const goalMap = ['contact', 'donate', 'protest', 'spread', 'volunteer'];
       const voiceToPersonalityMap = [
         'charismatic_leader',      // Charismatic
+        'diplomatic_peacemaker',   // Diplomatic
+        'empathetic_connector',    // Empathetic
+        'resilient_survivor',      // Empowered
         'logical_analyst',         // Logical
         'passionate_advocate',     // Passionate
-        'empathetic_connector',    // Empathetic
-        'pragmatic_strategist',    // Strategic
-        'fearless_challenger',     // Adversarial
-        'diplomatic_peacemaker',   // Diplomatic
-        'resilient_survivor'       // Empowered
+        'pragmatic_strategist'     // Strategic
       ];
 
       const requestBody = {
