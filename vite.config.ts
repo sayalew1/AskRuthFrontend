@@ -6,10 +6,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': {
+      '/api/askruth': {
         target: 'https://ai-message-web.azurewebsites.net',
         changeOrigin: true,
         secure: true,
+      },
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
       }
     }
   }

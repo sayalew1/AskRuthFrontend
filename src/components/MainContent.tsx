@@ -265,7 +265,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         by_cause: chunkFactsData.chunk_facts?.by_cause || {}
       };
 
-      const response = await fetch('http://localhost:8000/api/generate-from-facts/', {
+      const response = await fetch('/api/generate-from-facts/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

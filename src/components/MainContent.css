@@ -479,6 +479,7 @@
   line-height: 150%;
   letter-spacing: 0.01em;
   color: #363636 !important;
+  padding-left: 28px;
 }
 
 .placeholder-fact {
@@ -497,9 +498,9 @@
   content: '•';
   color: #6C6051;
   font-weight: normal;
-  font-size: 8px;
-  width: 8px;
-  height: 8px;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
   position: absolute;
   left: 6px;
   top: 50%;
@@ -549,16 +550,16 @@
   color: #363636;
   margin-bottom: 8px;
   position: relative;
-  padding-left: 16px;
+  padding-left: 32px;
 }
 
 .main-text li::before {
   content: '•';
   color: #6C6051;
   font-weight: normal;
-  font-size: 8px;
-  width: 8px;
-  height: 8px;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
   position: absolute;
   left: 0;
   top: 50%;

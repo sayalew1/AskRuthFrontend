@@ -133,6 +133,7 @@ function App() {
   const handleStoryCardClick = async (storyId: number) => {
     setIsLoadingStory(true);
     try {
+      // Fetch story data
       const response = await fetch(`/api/askruth/story/${storyId}`);
       if (response.ok) {
         const data: StoryData = await response.json();
@@ -148,6 +149,19 @@ function App() {
         setShouldActivateStoryTab(true);
       } else {
         console.error('Failed to fetch story data:', response.statusText);
+      }
+
+      // Fetch campaign data
+      try {
+        const campaignResponse = await fetch(`/api/askruth/story/${storyId}/campaign/`);
+        if (campaignResponse.ok) {
+          const campaignData = await campaignResponse.json();
+          console.log('Campaign data:', campaignData);
+        } else {
+          console.error('Failed to fetch campaign data:', campaignResponse.statusText);
+        }
+      } catch (campaignError) {
+        console.error('Error fetching campaign data:', campaignError);
       }
     } catch (error) {
       console.error('Error fetching story data:', error);
