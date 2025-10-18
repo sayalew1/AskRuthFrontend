@@ -1,6 +1,7 @@
 .search-bar-section {
   background-color: #f8f5f0;
   padding: 8px 0;
+  flex-shrink: 0;
 }
 
 .search-bar-container {
@@ -8,6 +9,7 @@
   margin: 0 auto;
   padding: 0;
   box-sizing: border-box;
+  max-width: 1600px;
 }
 
 .search-container {
@@ -21,8 +23,10 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin: 0 20px;
   flex-wrap: wrap;
+  box-sizing: border-box;
 }
 
+/* Desktop */
 @media (max-width: 1200px) {
   .search-container {
     margin: 0 16px;
@@ -30,7 +34,12 @@
   }
 }
 
+/* Tablet */
 @media (max-width: 768px) {
+  .search-bar-section {
+    padding: 6px 0;
+  }
+
   .search-container {
     margin: 0 12px;
     padding: 10px 12px;
@@ -38,12 +47,26 @@
   }
 }
 
+/* Mobile */
 @media (max-width: 480px) {
+  .search-bar-section {
+    padding: 4px 0;
+  }
+
   .search-container {
     margin: 0 8px;
     padding: 8px 10px;
     gap: 8px;
     flex-direction: column;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 360px) {
+  .search-container {
+    margin: 0 6px;
+    padding: 6px 8px;
+    gap: 6px;
   }
 }
 
@@ -176,6 +199,22 @@
   position: relative;
   overflow: hidden;
   animation: slideUp 0.4s ease-out;
+}
+
+@media (max-width: 480px) {
+  .loading-modal {
+    padding: 32px 24px;
+    border-radius: 16px;
+    max-width: 95%;
+  }
+}
+
+@media (max-width: 360px) {
+  .loading-modal {
+    padding: 24px 16px;
+    border-radius: 12px;
+    max-width: 98%;
+  }
 }
 
 @keyframes slideUp {

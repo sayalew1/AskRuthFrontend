@@ -13,6 +13,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1200px) {
@@ -538,6 +539,48 @@
   .sidebar {
     max-width: calc(100vw - 16px);
     padding: 16px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 360px) {
+  .sidebar {
+    padding: 12px;
+    margin-left: -12px;
+    margin-right: 0;
+    max-height: 25vh;
+  }
+
+  .categories {
+    gap: 3px;
+    margin-bottom: 8px;
+  }
+
+  .category-btn {
+    height: 28px;
+    font-size: 9px;
+    padding: 3px;
+    min-width: 50px;
+  }
+
+  .campaign-card {
+    height: 80px;
+    margin-bottom: 6px;
+  }
+
+  .small-campaign-image {
+    width: 60px;
+    height: 60px;
+  }
+
+  .campaign-description {
+    height: 60px;
+    padding: 0 8px;
+  }
+
+  .description-text {
+    font-size: 11px;
+    line-height: 16px;
   }
 }
 
