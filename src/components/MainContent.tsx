@@ -2,58 +2,47 @@ import React, { useEffect, useRef } from 'react';
 import './MainContent.css';
 import NoFactsPopup from './NoFactsPopup';
 
-interface StoryData {
-  story: {
+interface Fact {
+  id: number;
+  text: string;
+  confidence: number;
+  metadata: {
+    topics: string[];
+    publisher: string;
+    source_url: string;
+    jurisdictions: string[];
+  };
+  article: {
     id: number;
-    title: string;
-    summary: string;
-    hero_image_url: string;
-    published_at: string;
-  };
-  facts: {
-    story_facts: Array<{
-      text: string;
-      metadata: {
-        source_url: string;
-      };
-    }>;
-    related_facts: Array<{
-      text: string;
-      metadata: {
-        source_url: string;
-      };
-    }>;
-  };
-  sources: Array<{
     url: string;
-    title?: string;
-  }>;
-  chips?: {
-    channels: Array<{
-      id: number;
-      code: string;
-      name: string;
-      character_limit: number;
-      image_aspect_ratio: string;
-      instructions: string;
-    }>;
-    goals: Array<{
-      id: number;
-      slug: string;
-      name: string;
-      description: string;
-    }>;
-    voices: Array<{
-      id: number;
-      slug: string;
-      name: string;
-      description: string;
-    }>;
-    selected: {
-      channels: number[];
-      goals: number[];
-      voices: number[];
-    };
+    headline: string;
+    publisher: string;
+    published_at: string | null;
+    image_url: string;
+  };
+}
+
+interface Source {
+  id: number;
+  url: string;
+  headline: string;
+  publisher: string;
+  published_at: string | null;
+  image_url: string;
+}
+
+interface StoryData {
+  facts: Fact[];
+  related_facts: Fact[];
+  sources: Source[];
+  meta: {
+    story_updated_at: string;
+    facts_last_updated: string;
+    related_last_updated: string;
+    articles_last_published: string;
+    facts_count: number;
+    related_facts_count: number;
+    sources_count: number;
   };
 }
 
@@ -67,12 +56,14 @@ interface MainContentProps {
   onUrlSwitch?: (url: string) => void;
   goButtonClicked?: boolean;
   storyData?: StoryData | null;
+  storyTitle?: string;
+  campaignFilters?: any;
   isLoadingStory?: boolean;
   shouldActivateStoryTab?: boolean;
   onStoryTabActivated?: () => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated }) => {
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
@@ -132,7 +123,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   // Effect to activate Story Facts tab when story data is loaded
   useEffect(() => {
-    if (shouldActivateStoryTab && storyData?.facts?.story_facts?.length) {
+    if (shouldActivateStoryTab && storyData?.facts?.length) {
       setActiveTab(0); // Activate Story Facts tab (index 0)
       if (onStoryTabActivated) {
         onStoryTabActivated();
@@ -225,14 +216,14 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     'Passionate', 'Strategic'
   ];
 
-  // Dynamic buttons from API or fallback to defaults
-  const socialChannels = storyData?.chips?.channels ?
+  // Dynamic buttons from campaign filters or fallback to defaults
+  const socialChannels = campaignFilters?.channels ?
     (() => {
-      // Transform API channels: convert "Text" to "Plain Text"
-      let channels = storyData.chips.channels.map(channel => {
+      // Transform campaign filter channels: convert "Text" to "Plain Text"
+      let channels = campaignFilters.channels.map((channel: any) => {
         const name = channel.name === 'Text' ? 'Plain Text' : channel.name;
         // Show "Coming Soon" for all channels except Plain Text
-        const description = name === 'Plain Text' ? (channel.instructions || null) : 'Coming Soon';
+        const description = name === 'Plain Text' ? null : 'Coming Soon';
         return {
           name,
           active: true,
@@ -250,10 +241,10 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       return channels;
     })() : defaultSocialChannels;
 
-  const actionButtons = storyData?.chips?.goals ?
+  const actionButtons = campaignFilters?.goals ?
     (() => {
-      // Transform API goals and sort to put "Donate" first and "Spread the Word" second
-      let goals = storyData.chips.goals.map(goal => {
+      // Transform campaign filter goals and sort to put "Donate" first and "Spread the Word" second
+      let goals = campaignFilters.goals.map((goal: any) => {
         // Show "Coming Soon" for all goals except Donate and Spread the Word
         const isAvailable = goal.name === 'Donate' || goal.name === 'Spread the Word';
         let description = 'Coming Soon';
@@ -276,8 +267,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       });
 
       // Sort to put "Donate" first and "Spread the Word" second if they exist
-      const donateIndex = goals.findIndex(g => g.name === 'Donate');
-      const spreadIndex = goals.findIndex(g => g.name === 'Spread the Word');
+      const donateIndex = goals.findIndex((g: any) => g.name === 'Donate');
+      const spreadIndex = goals.findIndex((g: any) => g.name === 'Spread the Word');
 
       if (donateIndex > 0) {
         const donate = goals.splice(donateIndex, 1)[0];
@@ -292,31 +283,31 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       return goals;
     })() : defaultActionButtons;
 
-  const characteristicTags = storyData?.chips?.voices ?
-    storyData.chips.voices.map(voice => voice.name) : defaultCharacteristicTags;
+  const characteristicTags = campaignFilters?.voices ?
+    campaignFilters.voices.map((voice: any) => voice.name) : defaultCharacteristicTags;
 
   const handleCreateCampaign = async () => {
     if (!chunkFactsData || !isCreateCampaignEnabled()) return;
 
     setIsCreatingCampaign(true);
     try {
-      // Map the selected options to the expected format
-      const socialChannelMap = ['plain_text', 'bluesky', 'email', 'facebook', 'instagram', 'tiktok', 'twitter', 'website'];
-      const goalMap = ['contact', 'donate', 'protest', 'spread', 'volunteer'];
-      const voiceToPersonalityMap = [
-        'charismatic_leader',      // Charismatic
-        'diplomatic_peacemaker',   // Diplomatic
-        'empathetic_connector',    // Empathetic
-        'resilient_survivor',      // Empowered
-        'logical_analyst',         // Logical
-        'passionate_advocate',     // Passionate
-        'pragmatic_strategist'     // Strategic
+      // Build maps from campaign filters
+      const socialChannelMap = campaignFilters?.channels?.map((ch: any) => ch.code) || ['plain_text', 'bluesky', 'email', 'facebook', 'instagram', 'tiktok', 'twitter', 'website'];
+      const goalMap = campaignFilters?.goals?.map((g: any) => g.slug) || ['contact', 'donate', 'protest', 'spread', 'volunteer'];
+      const voiceMap = campaignFilters?.voices?.map((v: any) => v.slug) || [
+        'charismatic',
+        'diplomatic',
+        'empathetic',
+        'empowered',
+        'logical',
+        'passionate',
+        'strategic'
       ];
 
       const requestBody = {
         url_facts: chunkFactsData.url_facts || storyFacts,
         rag_facts: chunkFactsData.chunk_facts?.facts || chunkFacts,
-        personality_type: voiceToPersonalityMap[activeCharacteristic],
+        personality_type: voiceMap[activeCharacteristic],
         goal: goalMap[activeActionButton],
         by_cause: chunkFactsData.chunk_facts?.by_cause || {}
       };
@@ -732,8 +723,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const getCurrentFacts = () => {
     if (activeTab === 0) {
       // Story Facts tab - prioritize story data if available
-      if (storyData?.facts?.story_facts && storyData.facts.story_facts.length > 0) {
-        return storyData.facts.story_facts.map(fact => fact.text);
+      if (storyData?.facts && storyData.facts.length > 0) {
+        return storyData.facts.map(fact => fact.text);
       } else if (storyFacts.length > 0) {
         return storyFacts;
       } else {
@@ -745,8 +736,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       }
     } else if (activeTab === 1) {
       // Related Facts & Data tab - prioritize story data if available
-      if (storyData?.facts?.related_facts && storyData.facts.related_facts.length > 0) {
-        return storyData.facts.related_facts.map(fact => fact.text);
+      if (storyData?.related_facts && storyData.related_facts.length > 0) {
+        return storyData.related_facts.map(fact => fact.text);
       } else if (chunkFacts.length > 0) {
         return chunkFacts;
       } else {
@@ -799,7 +790,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   return (
     <div className="main-content" ref={mainContentRef}>
       <div className="content-header">
-        <h1>{storyData?.story?.title || "Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero"}</h1>
+        <h1>{storyTitle || "Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero"}</h1>
       </div>
 
       <div className="tabs">
@@ -808,8 +799,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           const isRelatedFacts = index === 1;
           const isSources = index === 2;
           const sources = chunkFactsData?.chunk_facts?.sources || [];
-          const isDisabled = (isStoryFacts && !storyData?.facts?.story_facts?.length && storyFacts.length === 0) ||
-                           (isRelatedFacts && !storyData?.facts?.related_facts?.length && (!chunkFactsReady || chunkFacts.length === 0)) ||
+          const isDisabled = (isStoryFacts && !storyData?.facts?.length && storyFacts.length === 0) ||
+                           (isRelatedFacts && !storyData?.related_facts?.length && (!chunkFactsReady || chunkFacts.length === 0)) ||
                            (isSources && !storyData?.sources?.length && (!chunkFactsReady || sources.length === 0));
 
           return (
@@ -838,9 +829,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           <div className={`facts-container ${showAllFacts ? 'expanded' : ''}`}>
             <ul className="facts-list">
               {factsToShow.map((fact, index) => {
-                const isPlaceholder = (activeTab === 0 && !storyData?.facts?.story_facts && storyFacts.length === 0) ||
-                                    (activeTab === 1 && !storyData?.facts?.related_facts && chunkFacts.length === 0) ||
-                                    (activeTab === 2 && !storyData?.sources && (!chunkFactsReady || (chunkFactsData?.chunk_facts?.sources || []).length === 0));
+                const isPlaceholder = (activeTab === 0 && !storyData?.facts?.length && storyFacts.length === 0) ||
+                                    (activeTab === 1 && !storyData?.related_facts?.length && chunkFacts.length === 0) ||
+                                    (activeTab === 2 && !storyData?.sources?.length && (!chunkFactsReady || (chunkFactsData?.chunk_facts?.sources || []).length === 0));
 
                 // Handle Sources tab with clickable links
                 if (activeTab === 2 && !isPlaceholder) {
@@ -886,11 +877,11 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
                 if ((activeTab === 0 || activeTab === 1) && !isPlaceholder) {
                   let sourceUrl = null;
 
-                  if (activeTab === 0 && storyData?.facts?.story_facts) {
-                    const storyFact = storyData.facts.story_facts[index];
+                  if (activeTab === 0 && storyData?.facts) {
+                    const storyFact = storyData.facts[index];
                     sourceUrl = storyFact?.metadata?.source_url;
-                  } else if (activeTab === 1 && storyData?.facts?.related_facts) {
-                    const relatedFact = storyData.facts.related_facts[index];
+                  } else if (activeTab === 1 && storyData?.related_facts) {
+                    const relatedFact = storyData.related_facts[index];
                     sourceUrl = relatedFact?.metadata?.source_url;
                   }
 

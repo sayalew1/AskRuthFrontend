@@ -4,6 +4,7 @@
   border-radius: 12px;
   padding: 20px;
   min-height: auto;
+  height: var(--component-height, auto);
   margin-right: 10px;
   margin-left: -20px;
   max-width: 350px;
@@ -184,10 +185,11 @@
   flex-direction: column;
   gap: 12px;
   flex: 1;
-  max-height: calc(100vh - 180px);
+  max-height: calc(100vh - 200px);
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 8px;
+  min-height: 300px;
 }
 
 /* Custom scrollbar styling for campaigns */
@@ -197,16 +199,15 @@
 
 .campaigns::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 4px;
 }
 
 .campaigns::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: #888888;
   border-radius: 4px;
 }
 
 .campaigns::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: #666666;
 }
 
 .campaign-card {
@@ -218,7 +219,8 @@
   transition: all 0.2s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   width: 100%;
-  height: 154px;
+  min-height: 154px;
+  height: auto;
   opacity: 1;
   position: relative;
 }
@@ -426,14 +428,15 @@
 
 .campaign-description {
   flex: 1;
-  height: 72px;
+  min-height: 72px;
+  height: auto;
   opacity: 1;
   transform: rotate(0deg);
   gap: 8px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   padding: 0 12px;
 }
 
@@ -449,8 +452,8 @@
   color: #4C433B;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  display: flex;
-  align-items: center;
+  display: block;
+  white-space: normal;
 }
 
 @media (max-width: 1024px) {

@@ -18,58 +18,47 @@ interface ApiResponse {
   error?: any;
 }
 
-interface StoryData {
-  story: {
+interface Fact {
+  id: number;
+  text: string;
+  confidence: number;
+  metadata: {
+    topics: string[];
+    publisher: string;
+    source_url: string;
+    jurisdictions: string[];
+  };
+  article: {
     id: number;
-    title: string;
-    summary: string;
-    hero_image_url: string;
-    published_at: string;
-  };
-  facts: {
-    story_facts: Array<{
-      text: string;
-      metadata: {
-        source_url: string;
-      };
-    }>;
-    related_facts: Array<{
-      text: string;
-      metadata: {
-        source_url: string;
-      };
-    }>;
-  };
-  sources: Array<{
     url: string;
-    title?: string;
-  }>;
-  chips?: {
-    channels: Array<{
-      id: number;
-      code: string;
-      name: string;
-      character_limit: number;
-      image_aspect_ratio: string;
-      instructions: string;
-    }>;
-    goals: Array<{
-      id: number;
-      slug: string;
-      name: string;
-      description: string;
-    }>;
-    voices: Array<{
-      id: number;
-      slug: string;
-      name: string;
-      description: string;
-    }>;
-    selected: {
-      channels: number[];
-      goals: number[];
-      voices: number[];
-    };
+    headline: string;
+    publisher: string;
+    published_at: string | null;
+    image_url: string;
+  };
+}
+
+interface Source {
+  id: number;
+  url: string;
+  headline: string;
+  publisher: string;
+  published_at: string | null;
+  image_url: string;
+}
+
+interface StoryData {
+  facts: Fact[];
+  related_facts: Fact[];
+  sources: Source[];
+  meta: {
+    story_updated_at: string;
+    facts_last_updated: string;
+    related_last_updated: string;
+    articles_last_published: string;
+    facts_count: number;
+    related_facts_count: number;
+    sources_count: number;
   };
 }
 
@@ -83,6 +72,8 @@ function App() {
   const [searchText, setSearchText] = useState<string>('');
   const [goButtonClicked, setGoButtonClicked] = useState<boolean>(false);
   const [storyData, setStoryData] = useState<StoryData | null>(null);
+  const [storyTitle, setStoryTitle] = useState<string>('');
+  const [campaignFilters, setCampaignFilters] = useState<any>(null);
   const [isLoadingStory, setIsLoadingStory] = useState<boolean>(false);
   const [shouldActivateStoryTab, setShouldActivateStoryTab] = useState<boolean>(false);
 
@@ -130,11 +121,35 @@ function App() {
     setTimeout(() => setGoButtonClicked(false), 100);
   };
 
-  const handleStoryCardClick = async (storyId: number) => {
+  // Fetch campaign filters on component mount
+  React.useEffect(() => {
+    const fetchCampaignFilters = async () => {
+      try {
+        const response = await fetch('/api/v2/askruth/campaign-filters/');
+        if (response.ok) {
+          const data = await response.json();
+          setCampaignFilters(data);
+        } else {
+          console.error('Failed to fetch campaign filters:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching campaign filters:', error);
+      }
+    };
+
+    fetchCampaignFilters();
+  }, []);
+
+  const handleStoryCardClick = async (storyId: number, title?: string) => {
     setIsLoadingStory(true);
     try {
-      // Fetch story data
-      const response = await fetch(`/api/askruth/story/${storyId}`);
+      // Set the story title if provided
+      if (title) {
+        setStoryTitle(title);
+      }
+
+      // Fetch story evidence data from v2 API
+      const response = await fetch(`/api/v2/askruth/story/${storyId}/evidence/`);
       if (response.ok) {
         const data: StoryData = await response.json();
         setStoryData(data);
@@ -149,19 +164,6 @@ function App() {
         setShouldActivateStoryTab(true);
       } else {
         console.error('Failed to fetch story data:', response.statusText);
-      }
-
-      // Fetch campaign data
-      try {
-        const campaignResponse = await fetch(`/api/askruth/story/${storyId}/campaign/`);
-        if (campaignResponse.ok) {
-          const campaignData = await campaignResponse.json();
-          console.log('Campaign data:', campaignData);
-        } else {
-          console.error('Failed to fetch campaign data:', campaignResponse.statusText);
-        }
-      } catch (campaignError) {
-        console.error('Error fetching campaign data:', campaignError);
       }
     } catch (error) {
       console.error('Error fetching story data:', error);
@@ -193,6 +195,8 @@ function App() {
           onUrlSwitch={handleUrlSwitch}
           goButtonClicked={goButtonClicked}
           storyData={storyData}
+          storyTitle={storyTitle}
+          campaignFilters={campaignFilters}
           isLoadingStory={isLoadingStory}
           shouldActivateStoryTab={shouldActivateStoryTab}
           onStoryTabActivated={() => setShouldActivateStoryTab(false)}

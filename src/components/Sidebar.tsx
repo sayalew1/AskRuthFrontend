@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 import shareButtonIcon from '../assets/shareButton.png';
+import CorruptionImg from '../assets/categories/Corruption.jpg';
+import EconomyImg from '../assets/categories/Economy.jpg';
+import ImmigrationImg from '../assets/categories/Immigration.jpg';
+import WomensRightsImg from '../assets/categories/WomensRights.jpg';
 
 // Interface definitions
 interface Cause {
@@ -65,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
     const fetchCampaigns = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/askruth/feed/');
+        const response = await fetch('/api/v2/askruth/feed');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -83,49 +87,25 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
     fetchCampaigns();
   }, []);
 
-  // Get unique categories from campaigns
+  // Get unique categories from campaigns (using causes)
   const getCategories = () => {
     const uniqueCategories = new Set();
     campaigns.forEach(campaign => {
-      if (campaign.causes && campaign.causes.length > 0) {
-        uniqueCategories.add(campaign.causes[0].name);
+      if (campaign.cause && campaign.cause.name) {
+        uniqueCategories.add(campaign.cause.name);
       }
     });
 
     // Convert to array and sort alphabetically
     const allCategories = Array.from(uniqueCategories).sort();
-    console.log('All categories before ordering:', allCategories);
 
     // Create final order with explicit positioning
     const finalCategories = ['All'];
 
-    // Find Women's Rights with more robust checking
-    const womensRightsCategory = allCategories.find(cat =>
-      cat.toLowerCase().includes("women") && cat.toLowerCase().includes("right")
-    );
-
-    console.log('Found womens rights category:', womensRightsCategory);
-
-    // Add Women's Rights as second if it exists
-    if (womensRightsCategory) {
-      console.log('Adding Women\'s Rights as second');
-      finalCategories.push(womensRightsCategory);
-
-      // Add all other categories except Women's Rights
-      allCategories.forEach(category => {
-        if (category !== womensRightsCategory) {
-          console.log('Adding other category:', category);
-          finalCategories.push(category);
-        }
-      });
-    } else {
-      console.log('Women\'s Rights not found, adding all categories');
-      // If Women's Rights doesn't exist, just add all other categories
-      finalCategories.push(...allCategories);
-    }
-
-    // Debug logging
-    console.log('Final categories order:', finalCategories);
+    // Add all other categories
+    allCategories.forEach(category => {
+      finalCategories.push(category);
+    });
 
     return finalCategories.map((name, index) => ({
       name,
@@ -139,13 +119,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
     setActiveCategory(index);
   };
 
-  // Filter campaigns based on active category
+  // Filter campaigns based on active category (using causes)
   const getFilteredCampaigns = () => {
     if (activeCategory === 0) return campaigns; // 'All' category
     const selectedCategory = categories[activeCategory]?.name;
     return campaigns.filter(campaign =>
-      campaign.causes && campaign.causes.length > 0 &&
-      campaign.causes[0].name === selectedCategory
+      campaign.cause && campaign.cause.name === selectedCategory
     );
   };
 
@@ -162,56 +141,36 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
     }
   };
 
-  // Function to get category icon
+  // Function to get category icon - loads images from assets/categories for causes
   const getCategoryIcon = (categoryName: string) => {
     if (!categoryName) return null;
 
-    console.log(`Getting category icon for: "${categoryName}"`);
+    // Normalize the category name by removing all types of apostrophes, quotes, and spaces
+    const normalizedName = categoryName
+      .replace(/[\u0027\u2018\u2019\u201C\u201D\s]/g, ''); // Remove all apostrophes, quotes, and spaces
 
-    try {
-      // Map category names to the new JPG files
-      const categoryMapping: { [key: string]: string } = {
-        'Corruption': 'Corruption.jpg',
-        'Economy': 'Economy.jpg',
-        'Immigration': 'Immigration.jpg',
-        'Women\'s Rights': 'WomensRights.jpg',
-        'Womens Rights': 'WomensRights.jpg',
-        'Woman\'s Rights': 'WomensRights.jpg'
-      };
+    // Map cause names to imported image files
+    const causeImageMap: { [key: string]: string } = {
+      'Corruption': CorruptionImg,
+      'Economy': EconomyImg,
+      'Immigration': ImmigrationImg,
+      'WomensRights': WomensRightsImg
+    };
 
-      let fileName = categoryMapping[categoryName];
+    // Check if it's a cause (has image)
+    const iconUrl = causeImageMap[normalizedName];
 
-      // Special handling for Women's Rights with different apostrophe types
-      if (!fileName && categoryName.toLowerCase().includes('women') && categoryName.toLowerCase().includes('rights')) {
-        fileName = 'WomensRights.jpg';
-        console.log(`Using special Women's Rights mapping`);
-      }
-
-      console.log(`Mapped to filename: "${fileName}"`);
-
-      if (fileName) {
-        const iconUrl = new URL(`../assets/categories/${fileName}`, import.meta.url).href;
-        console.log(`Icon URL: ${iconUrl}`);
-        return iconUrl;
-      }
-
-      // Fallback: try original naming convention
-      const categorySlug = categoryName.toLowerCase().replace(/\s+/g, '-').replace(/'/g, '');
-      return new URL(`../assets/categories/${categorySlug}.svg`, import.meta.url).href;
-    } catch (error) {
-      console.log(`Failed to load category icon for: "${categoryName}"`, error);
-      return null;
-    }
+    return iconUrl || null;
   };
 
   const handleShareClick = (campaignTitle: string) => {
     // Handle share functionality
   };
 
-  const handleCampaignCardClick = (campaignId: number) => {
+  const handleCampaignCardClick = (campaignId: number, title?: string) => {
     setSelectedCampaignId(campaignId);
     if (onStoryCardClick) {
-      onStoryCardClick(campaignId);
+      onStoryCardClick(campaignId, title);
     }
   };
 
@@ -230,18 +189,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
   // Transform filtered API campaigns to match the expected format - all as small cards
   const transformedCampaigns = filteredCampaigns.map((campaign, index) => ({
     id: campaign.id,
-    title: campaign.jurisdictions && campaign.jurisdictions.length > 0 ? campaign.jurisdictions[0].name : 'Unknown State', // Use state name as title
+    title: campaign.cause && campaign.cause.name ? campaign.cause.name : 'Unknown Cause', // Use cause name as category title
     actualTitle: campaign.title || 'No Title', // Use actual campaign title for display
-    subtitle: campaign.causes && campaign.causes.length > 0 ? campaign.causes[0].name : '',
+    subtitle: '',
     description: campaign.summary ? campaign.summary.substring(0, 200) + (campaign.summary.length > 200 ? '...' : '') : '',
     image: campaign.hero_image_url || 'https://via.placeholder.com/86x86',
-    category: campaign.causes && campaign.causes.length > 0 ? campaign.causes[0].name : '',
-    categoryIcon: campaign.causes && campaign.causes.length > 0 ? getCategoryIcon(campaign.causes[0].name) : null,
+    category: campaign.cause && campaign.cause.name ? campaign.cause.name : '',
+    categoryIcon: campaign.cause && campaign.cause.name ? getCategoryIcon(campaign.cause.name) : null,
     bgColor: '#8b4513',
     icon: '🏛',
     hasLargeImage: false, // All campaigns are small cards now
-    stateIcon: campaign.jurisdictions && campaign.jurisdictions.length > 0 ? getStateIcon(campaign.jurisdictions[0].name) : null,
-    stateName: campaign.jurisdictions && campaign.jurisdictions.length > 0 ? campaign.jurisdictions[0].name : '',
+    stateIcon: campaign.cause && campaign.cause.name ? getCategoryIcon(campaign.cause.name) : null,
+    stateName: campaign.cause && campaign.cause.name ? campaign.cause.name : '',
     published_at: campaign.published_at
   }));
 
@@ -260,6 +219,29 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
         ))}
       </div>
 
+      {/* US Horoscope - Only shown when "All" category is selected - NOT scrollable */}
+      {activeCategory === 0 && (
+        <div className="campaign-card large-card">
+          <div className="large-campaign">
+            <div className="campaign-header">
+              <div className="campaign-icon" style={{ backgroundColor: '#4a90e2' }}>
+                <span>🇺🇸</span>
+              </div>
+              <div className="campaign-info">
+                <h4>US Horoscope</h4>
+                <p>National Political Climate</p>
+              </div>
+            </div>
+            <div className="campaign-description">
+              <p>Stay informed about the current political climate and key issues affecting the nation.</p>
+            </div>
+            <div className="campaign-date">
+              <span>{new Date().toLocaleDateString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="campaigns">
         {loading ? (
           <div className="simple-loading-overlay">
@@ -269,29 +251,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
           <div className="error-message">Error: {error}</div>
         ) : (
           <>
-            {/* US Horoscope - Only shown when "All" category is selected */}
-            {activeCategory === 0 && (
-              <div className="campaign-card large-card">
-                <div className="large-campaign">
-                  <div className="campaign-header">
-                    <div className="campaign-icon" style={{ backgroundColor: '#4a90e2' }}>
-                      <span>🇺🇸</span>
-                    </div>
-                    <div className="campaign-info">
-                      <h4>US Horoscope</h4>
-                      <p>National Political Climate</p>
-                    </div>
-                  </div>
-                  <div className="campaign-description">
-                    <p>Stay informed about the current political climate and key issues affecting the nation.</p>
-                  </div>
-                  <div className="campaign-date">
-                    <span>{new Date().toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Dynamic campaigns from API */}
             {transformedCampaigns.length === 0 ? (
               <div className="no-campaigns">No campaigns found</div>
@@ -300,7 +259,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
           <div
             key={campaign.id}
             className={`campaign-card ${campaign.hasLargeImage ? 'large-card' : 'small-card'} ${!campaign.hasLargeImage ? 'state-card' : ''} ${selectedCampaignId === campaign.id ? 'active' : ''}`}
-            onClick={() => handleCampaignCardClick(campaign.id)}
+            onClick={() => handleCampaignCardClick(campaign.id, campaign.actualTitle)}
             style={{ cursor: 'pointer' }}
           >
             {campaign.hasLargeImage ? (
@@ -332,10 +291,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
               </div>
             ) : (
               <div className="small-campaign" style={{position: 'relative'}}>
-                {console.log('Rendering small campaign:', campaign.title)}
                 <div className="campaign-header">
                   <div className="campaign-info" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 12px', marginBottom: '0'}}>
-                    {campaign.subtitle && <p style={{margin: '0', flex: '1'}}>{campaign.subtitle}</p>}
+                    {campaign.category && <p style={{margin: '0', flex: '1', fontWeight: '600', fontSize: '14px', color: '#4C433B'}}>{campaign.category}</p>}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -378,7 +336,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
                           src={campaign.categoryIcon}
                           alt={`${campaign.category} icon`}
                           className="category-icon"
-                          style={{width: '72px', height: '72px', marginRight: '12px', flexShrink: 0, borderRadius: '6px'}}
+                          style={{
+                            width: '72px',
+                            height: '72px',
+                            marginRight: '12px',
+                            flexShrink: 0,
+                            borderRadius: '6px',
+                            objectFit: campaign.category.includes('Women') ? 'contain' : 'cover',
+                            padding: campaign.category.includes('Women') ? '4px' : '0',
+                            backgroundColor: campaign.category.includes('Women') ? '#f9f9f9' : 'transparent'
+                          }}
+                          onError={(e) => {
+                            console.log(`Image failed to load: ${campaign.categoryIcon}`);
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       )}
                       {campaign.actualTitle && (

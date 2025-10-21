@@ -268,11 +268,13 @@
 .tab:nth-child(2) {
   width: 175px;
   padding: 12px; /* Spacing/SM */
+  line-height: 1;
 }
 
 .tab:nth-child(2).active {
   width: 175px;
   padding: 12px; /* Spacing/SM */
+  line-height: 1;
 }
 
 /* Sources tab (third tab) - always 82px */
@@ -328,12 +330,12 @@
 
 .facts-container {
   flex: 0 0 220px;
-  overflow-y: auto;
+  overflow: hidden;
   overflow-x: hidden;
   margin-bottom: 18px;
   padding: 12px;
   padding-right: 20px;
-  transition: flex-basis 0.3s ease;
+  transition: flex-basis 0.3s ease, overflow 0.3s ease 0.3s;
   width: 100%;
   box-sizing: border-box;
 }
@@ -341,6 +343,7 @@
 /* Expanded facts container when showing more facts - increase by 80% */
 .facts-container.expanded {
   flex: 0 0 396px;
+  overflow-y: auto;
 }
 
 /* Bottom sections wrapper */
@@ -425,23 +428,16 @@
 }
 
 .facts-container::-webkit-scrollbar-track {
-  background: #f8f5f0;
-  border-radius: 10px;
-  margin: 4px 0;
+  background: transparent;
 }
 
 .facts-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #8b7355, #a0845a);
-  border-radius: 10px;
-  border: 1px solid #f8f5f0;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(139, 115, 85, 0.3);
+  background: #888888;
+  border-radius: 4px;
 }
 
 .facts-container::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #7a6449, #8b7355);
-  border-color: #f0ebe1;
-  box-shadow: 0 4px 8px rgba(139, 115, 85, 0.4);
+  background: #666666;
 }
 
 .facts-list {
