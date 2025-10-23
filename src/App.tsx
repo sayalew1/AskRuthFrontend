@@ -104,6 +104,9 @@ function App() {
     setSearchText(url); // Update search bar when URL changes
     // Clear variations immediately when a new URL is being processed
     setVariations(null);
+    // Clear story data when a new URL is entered
+    setStoryData(null);
+    setStoryTitle('');
   };
 
   const handleUrlSwitch = (url: string) => {
@@ -157,8 +160,17 @@ function App() {
         // Clear existing facts data when loading a new story
         setStoryFacts([]);
         setChunkFacts([]);
-        setChunkFactsReady(false);
         setChunkFactsData(null);
+
+        // Set chunkFactsReady to true if related_facts exist
+        if (data.related_facts && data.related_facts.length > 0) {
+          setChunkFactsReady(true);
+          // Extract related facts text for chunkFacts
+          const relatedFactsText = data.related_facts.map(fact => fact.text);
+          setChunkFacts(relatedFactsText);
+        } else {
+          setChunkFactsReady(false);
+        }
 
         // Trigger Story Facts tab activation
         setShouldActivateStoryTab(true);
@@ -184,7 +196,7 @@ function App() {
         onGoButtonClicked={handleGoButtonClicked}
       />
       <div className="app-body">
-        <Sidebar onStoryCardClick={handleStoryCardClick} />
+        <Sidebar onStoryCardClick={handleStoryCardClick} resetSelection={goButtonClicked} />
         <MainContent
           storyFacts={storyFacts}
           chunkFacts={chunkFacts}

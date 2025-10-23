@@ -55,9 +55,10 @@ interface ApiResponse {
 
 interface SidebarProps {
   onStoryCardClick?: (storyId: number) => void;
+  resetSelection?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick, resetSelection }) => {
   const [activeCategory, setActiveCategory] = useState(0);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +87,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick }) => {
 
     fetchCampaigns();
   }, []);
+
+  // Reset selected campaign when resetSelection prop changes
+  useEffect(() => {
+    if (resetSelection) {
+      setSelectedCampaignId(null);
+    }
+  }, [resetSelection]);
 
   // Get unique categories from campaigns (using causes)
   const getCategories = () => {

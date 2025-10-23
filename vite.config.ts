@@ -6,6 +6,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      '/api/v2/askruth/feed': {
+        target: 'https://ai-message-web.azurewebsites.net',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path,
+      },
       '/api/v2/askruth/story': {
         target: 'https://ai-message-web.azurewebsites.net',
         changeOrigin: true,
@@ -17,17 +23,6 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path,
-      },
-      '/api/v2/askruth': {
-        target: 'https://ai-message-web.azurewebsites.net',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path,
-      },
-      '/api/askruth': {
-        target: 'https://ai-message-web.azurewebsites.net',
-        changeOrigin: true,
-        secure: true,
       },
       '/api': {
         target: 'http://localhost:8000',
