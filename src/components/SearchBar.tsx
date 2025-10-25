@@ -62,7 +62,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
       // Store the current URL for later use
       setCurrentUrl(fullUrl);
 
-      const response = await fetch('http://localhost:8000/api/extract-facts/', {
+      const response = await fetch('/api/extract-facts/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
     const poll = async () => {
       try {
         const timestamp = Date.now();
-        const response = await fetch(`http://localhost:8000/api/chunk-facts-status?job_id=${jobId}&_t=${timestamp}`, {
+        const response = await fetch(`/api/chunk-facts-status?job_id=${jobId}&_t=${timestamp}`, {
           cache: 'no-cache'
         });
         const data = await response.json();
@@ -157,7 +157,6 @@ const SearchBar: React.FC<SearchBarProps> = ({ onFactsExtracted, onChunkFactsRea
               {isLoading ? (
                 <div className="loading-content">
                   <div className="spinner"></div>
-                  <span>Extracting...</span>
                 </div>
               ) : (
                 'Go'

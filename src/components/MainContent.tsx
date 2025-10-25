@@ -1,6 +1,50 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './MainContent.css';
 import NoFactsPopup from './NoFactsPopup';
+
+interface Fact {
+  id: number;
+  text: string;
+  confidence: number;
+  metadata: {
+    topics: string[];
+    publisher: string;
+    source_url: string;
+    jurisdictions: string[];
+  };
+  article: {
+    id: number;
+    url: string;
+    headline: string;
+    publisher: string;
+    published_at: string | null;
+    image_url: string;
+  };
+}
+
+interface Source {
+  id: number;
+  url: string;
+  headline: string;
+  publisher: string;
+  published_at: string | null;
+  image_url: string;
+}
+
+interface StoryData {
+  facts: Fact[];
+  related_facts: Fact[];
+  sources: Source[];
+  meta: {
+    story_updated_at: string;
+    facts_last_updated: string;
+    related_last_updated: string;
+    articles_last_published: string;
+    facts_count: number;
+    related_facts_count: number;
+    sources_count: number;
+  };
+}
 
 interface MainContentProps {
   storyFacts: string[];
@@ -11,9 +55,16 @@ interface MainContentProps {
   currentUrl: string;
   onUrlSwitch?: (url: string) => void;
   goButtonClicked?: boolean;
+  storyData?: StoryData | null;
+  storyTitle?: string;
+  campaignFilters?: any;
+  isLoadingStory?: boolean;
+  shouldActivateStoryTab?: boolean;
+  onStoryTabActivated?: () => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated }) => {
+  const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
   const [activeSocialChannel, setActiveSocialChannel] = React.useState(0);
@@ -47,6 +98,39 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const [showUrlDropdown, setShowUrlDropdown] = React.useState(false);
   const [showNoFactsPopup, setShowNoFactsPopup] = React.useState(false);
 
+  // Effect to measure and sync component height with right sidebar
+  useEffect(() => {
+    const updateHeight = () => {
+      if (mainContentRef.current) {
+        const height = mainContentRef.current.scrollHeight;
+        document.documentElement.style.setProperty('--component-height', `${height}px`);
+      }
+    };
+
+    // Update on mount and when content changes
+    updateHeight();
+
+    // Use ResizeObserver to watch for size changes
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (mainContentRef.current) {
+      resizeObserver.observe(mainContentRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // Effect to activate Story Facts tab when story data is loaded
+  useEffect(() => {
+    if (shouldActivateStoryTab && storyData?.facts?.length) {
+      setActiveTab(0); // Activate Story Facts tab (index 0)
+      if (onStoryTabActivated) {
+        onStoryTabActivated();
+      }
+    }
+  }, [shouldActivateStoryTab, storyData, onStoryTabActivated]);
+
   // Automatically select "Story Facts" tab when GO button is clicked
   useEffect(() => {
     if (goButtonClicked) {
@@ -71,54 +155,164 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     }
   }, [chunkFacts.length]);
 
-  const socialChannels = [
+  // Set default selections based on API chips data
+  useEffect(() => {
+    if (storyData?.chips?.selected) {
+      const { channels, goals, voices } = storyData.chips.selected;
+
+      // Set default channel selection (use first selected channel or 0)
+      if (channels && channels.length > 0 && storyData.chips.channels) {
+        const channelIndex = storyData.chips.channels.findIndex(ch => ch.id === channels[0]);
+        if (channelIndex !== -1) {
+          setActiveSocialChannel(channelIndex);
+        }
+      }
+
+      // Set default goal selection (use first selected goal or 0)
+      if (goals && goals.length > 0 && storyData.chips.goals) {
+        const goalIndex = storyData.chips.goals.findIndex(g => g.id === goals[0]);
+        if (goalIndex !== -1) {
+          setActiveActionButton(goalIndex);
+        }
+      }
+
+      // Set default voice selection (use first selected voice or 0)
+      if (voices && voices.length > 0 && storyData.chips.voices) {
+        const voiceIndex = storyData.chips.voices.findIndex(v => v.id === voices[0]);
+        if (voiceIndex !== -1) {
+          setActiveCharacteristic(voiceIndex);
+        }
+      }
+    } else {
+      // Reset to defaults when no story data or switching to a story without chips
+      setActiveSocialChannel(0);
+      setActiveActionButton(0);
+      setActiveCharacteristic(0);
+    }
+  }, [storyData]);
+
+  // Default buttons (fallback when no chips data available)
+  const defaultSocialChannels = [
     { name: 'Plain Text', active: true, description: null },
-    { name: 'Instagram', active: false, description: "Coming Soon" },
-    { name: 'Facebook', active: false, description: "Coming Soon" },
-    { name: 'Blue Sky', active: false, description: "Coming Soon" }
+    { name: 'Bluesky', active: false, description: 'Coming Soon' },
+    { name: 'Email', active: false, description: 'Coming Soon' },
+    { name: 'Facebook', active: false, description: 'Coming Soon' },
+    { name: 'Instagram', active: false, description: 'Coming Soon' },
+    { name: 'TikTok', active: false, description: 'Coming Soon' },
+    { name: 'Twitter/X', active: false, description: 'Coming Soon' },
+    { name: 'Website', active: false, description: 'Coming Soon' }
   ];
 
-  const actionButtons = [
-    { name: 'Donate', color: '#dc2626', description: "Suport NPO's or crowdfund your own Cause" },
-    { name: 'Spread the Word', color: '#059669', description: "Get the word out on issues that you care about" },
-    { name: 'Go to a Protest', color: '#7c3aed', description: "Coming Soon" },
-    { name: 'Contact your Rep', color: '#0891b2', description: "Coming Soon" }
+  const defaultActionButtons = [
+    { name: 'Donate', color: '#059669', description: "Support NPO's or crowdfund your own Cause" },
+    { name: 'Spread the Word', color: '#0891b2', description: 'Get the word out on issues that you care about' },
+    { name: 'Go to a Protest', color: '#7c3aed', description: 'Coming Soon' },
+    { name: 'Contact Your Rep', color: '#dc2626', description: 'Coming Soon' },
+    { name: 'Volunteer', color: '#f59e0b', description: 'Coming Soon' }
   ];
 
-  const voiceOptions = ['Voice'];
-  const characteristicTags = [
-    'Charismatic', 'Logical', 'Passionate', 'Empathetic', 'Strategic',
-    'Adversarial', 'Diplomatic', 'Empowered'
+  const defaultCharacteristicTags = [
+    'Charismatic', 'Diplomatic', 'Empathetic', 'Empowered', 'Logical',
+    'Passionate', 'Strategic'
   ];
+
+  // Dynamic buttons from campaign filters or fallback to defaults
+  const socialChannels = campaignFilters?.channels ?
+    (() => {
+      // Transform campaign filter channels: convert "Text" to "Plain Text"
+      let channels = campaignFilters.channels.map((channel: any) => {
+        const name = channel.name === 'Text' ? 'Plain Text' : channel.name;
+        // Show "Coming Soon" for all channels except Plain Text
+        const description = name === 'Plain Text' ? null : 'Coming Soon';
+        return {
+          name,
+          active: true,
+          description: description || null
+        };
+      });
+
+      // Sort to put "Plain Text" first if it exists
+      const plainTextIndex = channels.findIndex(c => c.name === 'Plain Text');
+      if (plainTextIndex > 0) {
+        const plainText = channels.splice(plainTextIndex, 1)[0];
+        channels.unshift(plainText);
+      }
+
+      return channels;
+    })() : defaultSocialChannels;
+
+  const actionButtons = campaignFilters?.goals ?
+    (() => {
+      // Transform campaign filter goals and sort to put "Donate" first and "Spread the Word" second
+      let goals = campaignFilters.goals.map((goal: any) => {
+        // Show "Coming Soon" for all goals except Donate and Spread the Word
+        const isAvailable = goal.name === 'Donate' || goal.name === 'Spread the Word';
+        let description = 'Coming Soon';
+
+        if (isAvailable) {
+          if (goal.name === 'Donate') {
+            description = "Support NPO's or crowdfund your own Cause";
+          } else if (goal.name === 'Spread the Word') {
+            description = 'Get the word out on issues that you care about';
+          } else {
+            description = goal.description || 'Coming Soon';
+          }
+        }
+
+        return {
+          name: goal.name,
+          color: '#dc2626', // Default color, could be enhanced later
+          description
+        };
+      });
+
+      // Sort to put "Donate" first and "Spread the Word" second if they exist
+      const donateIndex = goals.findIndex((g: any) => g.name === 'Donate');
+      const spreadIndex = goals.findIndex((g: any) => g.name === 'Spread the Word');
+
+      if (donateIndex > 0) {
+        const donate = goals.splice(donateIndex, 1)[0];
+        goals.unshift(donate);
+      }
+
+      if (spreadIndex > 1 || (spreadIndex > 0 && donateIndex === 0)) {
+        const spread = goals.splice(spreadIndex, 1)[0];
+        goals.splice(1, 0, spread);
+      }
+
+      return goals;
+    })() : defaultActionButtons;
+
+  const characteristicTags = campaignFilters?.voices ?
+    campaignFilters.voices.map((voice: any) => voice.name) : defaultCharacteristicTags;
 
   const handleCreateCampaign = async () => {
     if (!chunkFactsData || !isCreateCampaignEnabled()) return;
 
     setIsCreatingCampaign(true);
     try {
-      // Map the selected options to the expected format
-      const socialChannelMap = ['Plain Text', 'Instagram', 'Facebook', 'Blue Sky'];
-      const goalMap = ['donate', 'spread', 'protest', 'contact'];
-      const voiceToPersonalityMap = [
-        'charismatic_leader',      // Charismatic
-        'logical_analyst',         // Logical
-        'passionate_advocate',     // Passionate
-        'empathetic_connector',    // Empathetic
-        'pragmatic_strategist',    // Strategic
-        'fearless_challenger',     // Adversarial
-        'diplomatic_peacemaker',   // Diplomatic
-        'resilient_survivor'       // Empowered
+      // Build maps from campaign filters
+      const socialChannelMap = campaignFilters?.channels?.map((ch: any) => ch.code) || ['plain_text', 'bluesky', 'email', 'facebook', 'instagram', 'tiktok', 'twitter', 'website'];
+      const goalMap = campaignFilters?.goals?.map((g: any) => g.slug) || ['contact', 'donate', 'protest', 'spread', 'volunteer'];
+      const voiceMap = campaignFilters?.voices?.map((v: any) => v.slug) || [
+        'charismatic',
+        'diplomatic',
+        'empathetic',
+        'empowered',
+        'logical',
+        'passionate',
+        'strategic'
       ];
 
       const requestBody = {
         url_facts: chunkFactsData.url_facts || storyFacts,
         rag_facts: chunkFactsData.chunk_facts?.facts || chunkFacts,
-        personality_type: voiceToPersonalityMap[activeCharacteristic],
+        personality_type: voiceMap[activeCharacteristic],
         goal: goalMap[activeActionButton],
         by_cause: chunkFactsData.chunk_facts?.by_cause || {}
       };
 
-      const response = await fetch('http://localhost:8000/api/generate-from-facts/', {
+      const response = await fetch('/api/generate-from-facts/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -528,35 +722,51 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   // Display logic for facts based on active tab
   const getCurrentFacts = () => {
     if (activeTab === 0) {
-      // Story Facts tab
-      return storyFacts.length > 0 ? storyFacts : [
-        "No facts extracted yet. Use the search bar above to analyze an article.",
-        "Enter a valid URL and click 'Go' to extract key facts from news articles.",
-        "AI will analyze the content and identify important information."
-      ];
-    } else if (activeTab === 1) {
-      // Related Facts & Data tab
-      return chunkFacts.length > 0 ? chunkFacts : [
-        "Related facts are being processed...",
-        "This may take a few moments to complete.",
-        "Additional context will appear here when ready."
-      ];
-    } else if (activeTab === 2) {
-      // Sources tab
-      const sources = chunkFactsData?.chunk_facts?.sources || [];
-      if (sources.length > 0) {
-        return sources.map((source: any) => source.title || 'Untitled Source');
-      } else if (chunkFactsReady) {
-        return [
-          "No sources found for this article.",
-          "Sources will appear here when available from the analysis."
-        ];
+      // Story Facts tab - prioritize story data if available
+      if (storyData?.facts && storyData.facts.length > 0) {
+        return storyData.facts.map(fact => fact.text);
+      } else if (storyFacts.length > 0) {
+        return storyFacts;
       } else {
         return [
-          "Sources are being processed...",
-          "This may take a few moments to complete.",
-          "Source links will appear here when ready."
+          "No facts extracted yet. Use the search bar above to analyze an article.",
+          "Enter a valid URL and click 'Go' to extract key facts from news articles.",
+          "AI will analyze the content and identify important information."
         ];
+      }
+    } else if (activeTab === 1) {
+      // Related Facts & Data tab - prioritize story data if available
+      if (storyData?.related_facts && storyData.related_facts.length > 0) {
+        return storyData.related_facts.map(fact => fact.text);
+      } else if (chunkFacts.length > 0) {
+        return chunkFacts;
+      } else {
+        return [
+          "Related facts are being processed...",
+          "This may take a few moments to complete.",
+          "Additional context will appear here when ready."
+        ];
+      }
+    } else if (activeTab === 2) {
+      // Sources tab - prioritize story data if available
+      if (storyData?.sources && storyData.sources.length > 0) {
+        return storyData.sources.map(source => source.url);
+      } else {
+        const sources = chunkFactsData?.chunk_facts?.sources || [];
+        if (sources.length > 0) {
+          return sources.map((source: any) => source.title || 'Untitled Source');
+        } else if (chunkFactsReady) {
+          return [
+            "No sources found for this article.",
+            "Sources will appear here when available from the analysis."
+          ];
+        } else {
+          return [
+            "Sources are being processed...",
+            "This may take a few moments to complete.",
+            "Source links will appear here when ready."
+          ];
+        }
       }
     }
     return [
@@ -578,9 +788,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   };
 
   return (
-    <div className="main-content">
+    <div className="main-content" ref={mainContentRef}>
       <div className="content-header">
-        <h1>Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero</h1>
+        <h1>{storyTitle || "Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero"}</h1>
       </div>
 
       <div className="tabs">
@@ -589,15 +799,23 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           const isRelatedFacts = index === 1;
           const isSources = index === 2;
           const sources = chunkFactsData?.chunk_facts?.sources || [];
-          const isDisabled = (isStoryFacts && storyFacts.length === 0) ||
-                           (isRelatedFacts && (!chunkFactsReady || chunkFacts.length === 0)) ||
-                           (isSources && (!chunkFactsReady || sources.length === 0));
+          const isDisabled = (isStoryFacts && !storyData?.facts?.length && storyFacts.length === 0) ||
+                           (isRelatedFacts && !storyData?.related_facts?.length && (!chunkFactsReady || chunkFacts.length === 0)) ||
+                           (isSources && !storyData?.sources?.length && (!chunkFactsReady || sources.length === 0));
 
           return (
             <button
               key={index}
               className={`tab ${activeTab === index ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`}
-              onClick={() => !isDisabled && setActiveTab(index)}
+              onClick={() => {
+                if (!isDisabled) {
+                  setActiveTab(index);
+                  // Reset showAllFacts when switching to Sources tab since it doesn't use Show More/Less
+                  if (index === 2) {
+                    setShowAllFacts(false);
+                  }
+                }
+              }}
               disabled={isDisabled}
             >
               {tab}
@@ -611,28 +829,82 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           <div className={`facts-container ${showAllFacts ? 'expanded' : ''}`}>
             <ul className="facts-list">
               {factsToShow.map((fact, index) => {
-                const isPlaceholder = (activeTab === 0 && storyFacts.length === 0) ||
-                                    (activeTab === 1 && chunkFacts.length === 0) ||
-                                    (activeTab === 2 && (!chunkFactsReady || (chunkFactsData?.chunk_facts?.sources || []).length === 0));
+                const isPlaceholder = (activeTab === 0 && !storyData?.facts?.length && storyFacts.length === 0) ||
+                                    (activeTab === 1 && !storyData?.related_facts?.length && chunkFacts.length === 0) ||
+                                    (activeTab === 2 && !storyData?.sources?.length && (!chunkFactsReady || (chunkFactsData?.chunk_facts?.sources || []).length === 0));
 
                 // Handle Sources tab with clickable links
                 if (activeTab === 2 && !isPlaceholder) {
-                  const sources = chunkFactsData?.chunk_facts?.sources || [];
-                  const source = sources[index];
-                  if (source && source.url) {
-                    return (
-                      <li key={index} className="extracted-fact source-fact">
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="source-link"
-                        >
-                          {fact}
-                        </a>
-                      </li>
-                    );
+                  // Check if we have story data sources first
+                  if (storyData?.sources && storyData.sources.length > 0) {
+                    const source = storyData.sources[index];
+                    if (source && source.url) {
+                      return (
+                        <li key={index} className="extracted-fact source-fact">
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="source-link"
+                          >
+                            {fact}
+                          </a>
+                        </li>
+                      );
+                    }
+                  } else {
+                    // Fallback to chunk facts sources
+                    const sources = chunkFactsData?.chunk_facts?.sources || [];
+                    const source = sources[index];
+                    if (source && source.url) {
+                      return (
+                        <li key={index} className="extracted-fact source-fact">
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="source-link"
+                          >
+                            {fact}
+                          </a>
+                        </li>
+                      );
+                    }
                   }
+                }
+
+                // Handle Story Facts and Related Facts with source URLs
+                if ((activeTab === 0 || activeTab === 1) && !isPlaceholder) {
+                  let sourceUrl = null;
+
+                  if (activeTab === 0 && storyData?.facts) {
+                    const storyFact = storyData.facts[index];
+                    sourceUrl = storyFact?.metadata?.source_url;
+                  } else if (activeTab === 1 && storyData?.related_facts) {
+                    const relatedFact = storyData.related_facts[index];
+                    sourceUrl = relatedFact?.metadata?.source_url;
+                  }
+
+                  return (
+                    <li key={index} className={isPlaceholder ? 'placeholder-fact' : 'extracted-fact'}>
+                      <span className="fact-text">
+                        {fact}
+                        {sourceUrl && (
+                          <>
+                            {' '}
+                            <a
+                              href={sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="source-link-small"
+                            >
+                              Source
+                            </a>
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  );
                 }
 
                 return (
@@ -774,7 +1046,6 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               {isCreatingCampaign ? (
                 <div className="button-loading-content">
                   <div className="button-spinner"></div>
-                  <span>Creating Campaign...</span>
                 </div>
               ) : (
                 (() => {
@@ -829,6 +1100,13 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
         </div> {/* End of bottom-sections */}
       </div>
+
+      {/* Loading Overlay for Story Data */}
+      {isLoadingStory && (
+        <div className="simple-loading-overlay">
+          <div className="simple-spinner"></div>
+        </div>
+      )}
 
       {/* No Facts Popup */}
       <NoFactsPopup
