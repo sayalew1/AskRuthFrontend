@@ -61,9 +61,10 @@ interface MainContentProps {
   isLoadingStory?: boolean;
   shouldActivateStoryTab?: boolean;
   onStoryTabActivated?: () => void;
+  onButtonSelectionChange?: (socialChannel: number, goal: number, voice: number) => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange }) => {
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
@@ -403,14 +404,17 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   const handleSocialChannelClick = (index: number) => {
     setActiveSocialChannel(index);
+    onButtonSelectionChange?.(index, activeActionButton, activeCharacteristic);
   };
 
   const handleActionButtonClick = (index: number) => {
     setActiveActionButton(index);
+    onButtonSelectionChange?.(activeSocialChannel, index, activeCharacteristic);
   };
 
   const handleCharacteristicClick = (index: number) => {
     setActiveCharacteristic(index);
+    onButtonSelectionChange?.(activeSocialChannel, activeActionButton, index);
   };
 
   const handleShowMore = () => {
