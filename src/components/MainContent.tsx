@@ -61,10 +61,11 @@ interface MainContentProps {
   isLoadingStory?: boolean;
   shouldActivateStoryTab?: boolean;
   onStoryTabActivated?: () => void;
-  onButtonSelectionChange?: (socialChannel: number, goal: number, voice: number) => void;
+  onButtonSelectionChange?: (channelCode: string, goalSlug: string, voiceSlug: string) => void;
+  campaignData?: any;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange, campaignData }) => {
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
@@ -217,75 +218,95 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     'Passionate', 'Strategic'
   ];
 
-  // Dynamic buttons from campaign filters or fallback to defaults
-  const socialChannels = campaignFilters?.channels ?
-    (() => {
-      // Transform campaign filter channels: convert "Text" to "Plain Text"
-      let channels = campaignFilters.channels.map((channel: any) => {
-        const name = channel.name === 'Text' ? 'Plain Text' : channel.name;
-        // Show "Coming Soon" for all channels except Plain Text
-        const description = name === 'Plain Text' ? null : 'Coming Soon';
-        return {
-          name,
-          active: true,
-          description: description || null
-        };
-      });
+  // Create a mapping from display index to original filter index for channels
+  const channelIndexMap = React.useMemo(() => {
+    if (!campaignFilters?.channels) return [];
 
-      // Sort to put "Plain Text" first if it exists
-      const plainTextIndex = channels.findIndex(c => c.name === 'Plain Text');
-      if (plainTextIndex > 0) {
-        const plainText = channels.splice(plainTextIndex, 1)[0];
-        channels.unshift(plainText);
+    let channels = campaignFilters.channels.map((channel: any, originalIndex: number) => {
+      const name = channel.name === 'Text' ? 'Plain Text' : channel.name;
+      const channelCode = channel.code;
+      const hasCampaignData = campaignData?.matrix?.charismatic?.[channelCode] !== undefined;
+
+      let description = null;
+      if (name !== 'Plain Text' && !hasCampaignData) {
+        description = 'Coming Soon';
       }
 
-      return channels;
-    })() : defaultSocialChannels;
+      return {
+        ...channel,
+        name,
+        originalIndex,
+        active: true,
+        description: description || null
+      };
+    });
 
-  const actionButtons = campaignFilters?.goals ?
-    (() => {
-      // Transform campaign filter goals and sort to put "Donate" first and "Spread the Word" second
-      let goals = campaignFilters.goals.map((goal: any) => {
-        // Show "Coming Soon" for all goals except Donate and Spread the Word
-        const isAvailable = goal.name === 'Donate' || goal.name === 'Spread the Word';
-        let description = 'Coming Soon';
+    // Sort to put "Plain Text" first if it exists
+    const plainTextIndex = channels.findIndex(c => c.name === 'Plain Text');
+    if (plainTextIndex > 0) {
+      const plainText = channels.splice(plainTextIndex, 1)[0];
+      channels.unshift(plainText);
+    }
 
-        if (isAvailable) {
-          if (goal.name === 'Donate') {
-            description = "Support NPO's or crowdfund your own Cause";
-          } else if (goal.name === 'Spread the Word') {
-            description = 'Get the word out on issues that you care about';
-          } else {
-            description = goal.description || 'Coming Soon';
-          }
-        }
+    return channels;
+  }, [campaignFilters?.channels, campaignData?.matrix?.charismatic]);
 
-        return {
-          name: goal.name,
-          color: '#dc2626', // Default color, could be enhanced later
-          description
-        };
-      });
+  const socialChannels = channelIndexMap.map((channel: any) => ({
+    name: channel.name,
+    active: channel.active,
+    description: channel.description,
+    code: channel.code
+  }));
 
-      // Sort to put "Donate" first and "Spread the Word" second if they exist
-      const donateIndex = goals.findIndex((g: any) => g.name === 'Donate');
-      const spreadIndex = goals.findIndex((g: any) => g.name === 'Spread the Word');
+  // Create goal buttons with slug
+  const actionButtons = React.useMemo(() => {
+    if (!campaignFilters?.goals) return [];
 
-      if (donateIndex > 0) {
-        const donate = goals.splice(donateIndex, 1)[0];
-        goals.unshift(donate);
+    let goals = campaignFilters.goals.map((goal: any) => ({
+      ...goal,
+      description: 'Coming Soon'
+    }));
+
+    // Add descriptions
+    goals = goals.map((goal: any) => {
+      let description = 'Coming Soon';
+      if (goal.name === 'Donate') {
+        description = "Support NPO's or crowdfund your own Cause";
+      } else if (goal.name === 'Spread the Word') {
+        description = 'Get the word out on issues that you care about';
+      } else if (goal.name === 'Contact Your Rep') {
+        description = 'Reach out to your representatives and make change happen';
+      } else if (goal.name === 'Go to a Protest') {
+        description = 'Show up and take a stand for what you believe in';
       }
+      return { ...goal, description };
+    });
 
-      if (spreadIndex > 1 || (spreadIndex > 0 && donateIndex === 0)) {
-        const spread = goals.splice(spreadIndex, 1)[0];
-        goals.splice(1, 0, spread);
-      }
+    // Sort to put "Donate" first and "Spread the Word" second if they exist
+    const donateIndex = goals.findIndex((g: any) => g.name === 'Donate');
+    const spreadIndex = goals.findIndex((g: any) => g.name === 'Spread the Word');
 
-      return goals;
-    })() : defaultActionButtons;
+    if (donateIndex > 0) {
+      const donate = goals.splice(donateIndex, 1)[0];
+      goals.unshift(donate);
+    }
+
+    if (spreadIndex > 1 || (spreadIndex > 0 && donateIndex === 0)) {
+      const spread = goals.splice(spreadIndex, 1)[0];
+      goals.splice(1, 0, spread);
+    }
+
+    return goals;
+  }, [campaignFilters?.goals]);
 
   const characteristicTags = campaignFilters?.voices ?
-    campaignFilters.voices.map((voice: any) => voice.name) : defaultCharacteristicTags;
+    campaignFilters.voices.map((voice: any) => ({
+      name: voice.name,
+      slug: voice.slug
+    })) : defaultCharacteristicTags.map((tag: string) => ({
+      name: tag,
+      slug: tag.toLowerCase()
+    }));
 
   const handleCreateCampaign = async () => {
     if (!chunkFactsData || !isCreateCampaignEnabled()) return;
@@ -395,26 +416,56 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const isCreateCampaignEnabled = () => {
     const hasStoryFacts = storyFacts.length > 0;
     const hasChunkFacts = chunkFactsReady && chunkFacts.length > 0;
-    const hasSocialChannel = activeSocialChannel !== null && activeSocialChannel >= 0;
-    const hasGoal = activeActionButton !== null && activeActionButton >= 0;
+
+    // Social channel must be selected AND must be "Plain Text"
+    const isPlainTextSelected = activeSocialChannel !== null && activeSocialChannel >= 0 &&
+                                socialChannels[activeSocialChannel]?.name === 'Plain Text';
+
+    // Goal must be selected AND must NOT be "Volunteer"
+    const isValidGoalSelected = activeActionButton !== null && activeActionButton >= 0 &&
+                                actionButtons[activeActionButton]?.name !== 'Volunteer';
+
     const hasVoice = activeCharacteristic !== null && activeCharacteristic >= 0;
 
-    return hasStoryFacts && hasChunkFacts && hasSocialChannel && hasGoal && hasVoice;
+    return hasStoryFacts && hasChunkFacts && isPlainTextSelected && isValidGoalSelected && hasVoice;
   };
 
-  const handleSocialChannelClick = (index: number) => {
-    setActiveSocialChannel(index);
-    onButtonSelectionChange?.(index, activeActionButton, activeCharacteristic);
+  const handleSocialChannelClick = (displayIndex: number) => {
+    setActiveSocialChannel(displayIndex);
+    const channelCode = socialChannels[displayIndex]?.code;
+    const goalSlug = actionButtons[activeActionButton]?.slug;
+    const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
+    if (channelCode && goalSlug && voiceSlug) {
+      onButtonSelectionChange?.(channelCode, goalSlug, voiceSlug);
+    }
   };
 
-  const handleActionButtonClick = (index: number) => {
-    setActiveActionButton(index);
-    onButtonSelectionChange?.(activeSocialChannel, index, activeCharacteristic);
+  const handleActionButtonClick = (displayIndex: number) => {
+    setActiveActionButton(displayIndex);
+    const channelCode = socialChannels[activeSocialChannel]?.code;
+    const goalSlug = actionButtons[displayIndex]?.slug;
+    const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
+    if (channelCode && goalSlug && voiceSlug) {
+      onButtonSelectionChange?.(channelCode, goalSlug, voiceSlug);
+    }
   };
 
   const handleCharacteristicClick = (index: number) => {
     setActiveCharacteristic(index);
-    onButtonSelectionChange?.(activeSocialChannel, activeActionButton, index);
+    const channelCode = socialChannels[activeSocialChannel]?.code;
+    const goalSlug = actionButtons[activeActionButton]?.slug;
+    const voiceSlug = characteristicTags[index]?.slug;
+    if (channelCode && goalSlug && voiceSlug) {
+      onButtonSelectionChange?.(channelCode, goalSlug, voiceSlug);
+    }
+  };
+
+  // Get the actual codes/slugs for the selected buttons
+  const getSelectedCodes = () => {
+    const channelCode = campaignFilters?.channels?.[activeSocialChannel]?.code;
+    const goalSlug = campaignFilters?.goals?.[activeActionButton]?.slug;
+    const voiceSlug = campaignFilters?.voices?.[activeCharacteristic]?.slug;
+    return { channelCode, goalSlug, voiceSlug };
   };
 
   const handleShowMore = () => {
@@ -945,7 +996,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               </button>
             ))}
           </div>
-          {activeSocialChannel !== null && activeSocialChannel >= 0 && socialChannels[activeSocialChannel].description && (
+          {activeSocialChannel !== null && activeSocialChannel >= 0 && socialChannels[activeSocialChannel]?.description && (
             <div className="social-description">
               {socialChannels[activeSocialChannel].description}
             </div>
@@ -965,7 +1016,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               </button>
             ))}
           </div>
-          {activeActionButton !== null && activeActionButton >= 0 && (
+          {activeActionButton !== null && activeActionButton >= 0 && actionButtons[activeActionButton]?.description && (
             <div className="goal-description">
               {actionButtons[activeActionButton].description}
             </div>
@@ -981,7 +1032,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
                 className={`characteristic-tag ${activeCharacteristic === index ? 'active' : ''}`}
                 onClick={() => handleCharacteristicClick(index)}
               >
-                {tag}
+                {typeof tag === 'string' ? tag : tag.name}
               </button>
             ))}
           </div>

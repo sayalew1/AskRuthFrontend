@@ -95,7 +95,7 @@ function App() {
   const [campaignData, setCampaignData] = useState<CampaignData | null>(null);
   const [isLoadingStory, setIsLoadingStory] = useState<boolean>(false);
   const [shouldActivateStoryTab, setShouldActivateStoryTab] = useState<boolean>(false);
-  const [selectedButtons, setSelectedButtons] = useState<{ socialChannel: number; goal: number; voice: number } | null>(null);
+  const [selectedButtons, setSelectedButtons] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
@@ -119,8 +119,8 @@ function App() {
     setVariations(variationsData);
   };
 
-  const handleButtonSelectionChange = (socialChannel: number, goal: number, voice: number) => {
-    setSelectedButtons({ socialChannel, goal, voice });
+  const handleButtonSelectionChange = (channelCode: string, goalSlug: string, voiceSlug: string) => {
+    setSelectedButtons({ channelCode, goalSlug, voiceSlug });
   };
 
   const handleUrlChanged = (url: string) => {
@@ -253,6 +253,7 @@ function App() {
           shouldActivateStoryTab={shouldActivateStoryTab}
           onStoryTabActivated={() => setShouldActivateStoryTab(false)}
           onButtonSelectionChange={handleButtonSelectionChange}
+          campaignData={campaignData}
         />
         <RightSidebar
           variations={variations}

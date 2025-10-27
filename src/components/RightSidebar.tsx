@@ -5,7 +5,7 @@ interface RightSidebarProps {
   variations?: any;
   campaignData?: any;
   campaignFilters?: any;
-  selectedButtons?: { socialChannel: number; goal: number; voice: number } | null;
+  selectedButtons?: { channelCode: string; goalSlug: string; voiceSlug: string } | null;
 }
 
 const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, campaignFilters, selectedButtons }) => {
@@ -44,59 +44,88 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
     }
   }, [campaignData]);
 
-  // Initialize campaign data with default values (first combination excluding "neutral" voice)
+  // Initialize campaign data with default values (text + donate + charismatic)
   useEffect(() => {
     if (campaignData?.matrix?.charismatic) {
       const charismatic = campaignData.matrix.charismatic;
+      const defaultChannel = 'text';
+      const defaultGoal = 'donate';
+      const defaultVoice = 'charismatic';
 
-      // Get first social media channel
-      const socialChannels = Object.keys(charismatic);
-      if (socialChannels.length > 0) {
-        const firstChannel = socialChannels[0];
-        setSelectedSocialChannel(firstChannel);
-
-        // Get first goal
-        const goals = Object.keys(charismatic[firstChannel]);
-        if (goals.length > 0) {
-          const firstGoal = goals[0];
-          setSelectedGoal(firstGoal);
-
-          // Get first voice that is not "neutral"
-          const voices = Object.keys(charismatic[firstChannel][firstGoal]);
-          const firstVoice = voices.find(v => v !== 'neutral') || voices[0];
-          setSelectedVoice(firstVoice);
-
-          // Set the campaign content
-          const content = charismatic[firstChannel][firstGoal][firstVoice];
-          console.log('Campaign content loaded:', { firstChannel, firstGoal, firstVoice, content });
-          setCampaignContent(content);
-        }
+      // Set the default campaign content
+      const content = charismatic[defaultChannel]?.[defaultGoal]?.[defaultVoice];
+      if (content) {
+        setSelectedSocialChannel(defaultChannel);
+        setSelectedGoal(defaultGoal);
+        setSelectedVoice(defaultVoice);
+        console.log('Campaign content loaded:', { defaultChannel, defaultGoal, defaultVoice, content });
+        setCampaignContent(content);
+      } else {
+        console.warn('Default campaign content not found:', {
+          defaultChannel,
+          defaultGoal,
+          defaultVoice,
+          availableChannels: Object.keys(charismatic),
+          availableGoals: charismatic[defaultChannel] ? Object.keys(charismatic[defaultChannel]) : [],
+          availableVoices: charismatic[defaultChannel]?.[defaultGoal] ? Object.keys(charismatic[defaultChannel][defaultGoal]) : []
+        });
       }
     }
   }, [campaignData]);
 
+
+
   // Update campaign content when button selections change
   useEffect(() => {
-    if (selectedButtons && campaignData?.matrix?.charismatic && campaignFilters) {
+    if (selectedButtons && campaignData?.matrix?.charismatic) {
       const charismatic = campaignData.matrix.charismatic;
+      const { channelCode, goalSlug, voiceSlug } = selectedButtons;
 
-      // Get the selected channel, goal, and voice names from filters
-      const selectedChannel = campaignFilters.channels?.[selectedButtons.socialChannel]?.code;
-      const selectedGoal = campaignFilters.goals?.[selectedButtons.goal]?.slug;
-      const selectedVoice = campaignFilters.voices?.[selectedButtons.voice]?.slug;
+      console.log('Looking up campaign data:', {
+        channel: channelCode,
+        goal: goalSlug,
+        voice: voiceSlug,
+        availableChannels: Object.keys(charismatic),
+        availableGoals: channelCode ? Object.keys(charismatic[channelCode] || {}) : [],
+      });
 
-      if (selectedChannel && selectedGoal && selectedVoice) {
-        // Check if this combination exists in the campaign data
-        const content = charismatic[selectedChannel]?.[selectedGoal]?.[selectedVoice];
-        if (content) {
-          setSelectedSocialChannel(selectedChannel);
-          setSelectedGoal(selectedGoal);
-          setSelectedVoice(selectedVoice);
-          setCampaignContent(content);
-        }
+      // Check if this combination exists in the campaign data
+      const content = charismatic[channelCode]?.[goalSlug]?.[voiceSlug];
+
+      if (content) {
+        setSelectedSocialChannel(channelCode);
+        setSelectedGoal(goalSlug);
+        setSelectedVoice(voiceSlug);
+        setCampaignContent(content);
+        // Reset section indices when new content is loaded
+        setSectionIndices({
+          opening_paragraph: 0,
+          core_message: 0,
+          supporting_evidence: 0,
+          emotional_appeal: 0,
+          call_to_action: 0
+        });
+      } else {
+        // If combination doesn't exist, show default values
+        console.warn('Combination not found in campaign data:', {
+          channelCode,
+          goalSlug,
+          voiceSlug,
+          availableChannels: Object.keys(charismatic),
+          availableGoals: charismatic[channelCode] ? Object.keys(charismatic[channelCode]) : [],
+          availableVoices: charismatic[channelCode]?.[goalSlug] ? Object.keys(charismatic[channelCode][goalSlug]) : []
+        });
+        setCampaignContent(null);
+        setSectionIndices({
+          opening_paragraph: 0,
+          core_message: 0,
+          supporting_evidence: 0,
+          emotional_appeal: 0,
+          call_to_action: 0
+        });
       }
     }
-  }, [selectedButtons, campaignData, campaignFilters]);
+  }, [selectedButtons, campaignData]);
 
   // Reset sidebar state when variations change (e.g., when switching URLs)
   useEffect(() => {
