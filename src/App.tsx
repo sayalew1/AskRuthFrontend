@@ -62,6 +62,24 @@ interface StoryData {
   };
 }
 
+interface CampaignData {
+  matrix: {
+    charismatic: {
+      [socialMediaChannel: string]: {
+        [goal: string]: {
+          [voice: string]: {
+            opening_paragraph: string[];
+            core_message: string[];
+            supporting_evidence: string[];
+            emotional_appeal: string[];
+            call_to_action: string[];
+          };
+        };
+      };
+    };
+  };
+}
+
 function App() {
   const [storyFacts, setStoryFacts] = useState<string[]>([]);
   const [chunkFacts, setChunkFacts] = useState<string[]>([]);
@@ -74,8 +92,10 @@ function App() {
   const [storyData, setStoryData] = useState<StoryData | null>(null);
   const [storyTitle, setStoryTitle] = useState<string>('');
   const [campaignFilters, setCampaignFilters] = useState<any>(null);
+  const [campaignData, setCampaignData] = useState<CampaignData | null>(null);
   const [isLoadingStory, setIsLoadingStory] = useState<boolean>(false);
   const [shouldActivateStoryTab, setShouldActivateStoryTab] = useState<boolean>(false);
+  const [selectedButtons, setSelectedButtons] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
@@ -99,6 +119,10 @@ function App() {
     setVariations(variationsData);
   };
 
+  const handleButtonSelectionChange = (channelCode: string, goalSlug: string, voiceSlug: string) => {
+    setSelectedButtons({ channelCode, goalSlug, voiceSlug });
+  };
+
   const handleUrlChanged = (url: string) => {
     setCurrentUrl(url);
     setSearchText(url); // Update search bar when URL changes
@@ -107,6 +131,7 @@ function App() {
     // Clear story data when a new URL is entered
     setStoryData(null);
     setStoryTitle('');
+    setCampaignData(null);
   };
 
   const handleUrlSwitch = (url: string) => {
@@ -145,6 +170,17 @@ function App() {
 
   const handleStoryCardClick = async (storyId: number, title?: string) => {
     setIsLoadingStory(true);
+
+    // Clear all data immediately before fetching new story
+    setStoryData(null);
+    setStoryFacts([]);
+    setChunkFacts([]);
+    setChunkFactsData(null);
+    setChunkFactsReady(false);
+    setCampaignData(null);
+    setVariations(null);
+    setSelectedButtons(null);
+
     try {
       // Set the story title if provided
       if (title) {
@@ -156,11 +192,6 @@ function App() {
       if (response.ok) {
         const data: StoryData = await response.json();
         setStoryData(data);
-
-        // Clear existing facts data when loading a new story
-        setStoryFacts([]);
-        setChunkFacts([]);
-        setChunkFactsData(null);
 
         // Set chunkFactsReady to true if related_facts exist
         if (data.related_facts && data.related_facts.length > 0) {
@@ -176,6 +207,15 @@ function App() {
         setShouldActivateStoryTab(true);
       } else {
         console.error('Failed to fetch story data:', response.statusText);
+      }
+
+      // Fetch campaign data
+      const campaignResponse = await fetch(`/api/v2/askruth/story/${storyId}/campaign/`);
+      if (campaignResponse.ok) {
+        const campaignDataResponse: CampaignData = await campaignResponse.json();
+        setCampaignData(campaignDataResponse);
+      } else {
+        console.error('Failed to fetch campaign data:', campaignResponse.statusText);
       }
     } catch (error) {
       console.error('Error fetching story data:', error);
@@ -212,8 +252,15 @@ function App() {
           isLoadingStory={isLoadingStory}
           shouldActivateStoryTab={shouldActivateStoryTab}
           onStoryTabActivated={() => setShouldActivateStoryTab(false)}
+          onButtonSelectionChange={handleButtonSelectionChange}
+          campaignData={campaignData}
         />
-        <RightSidebar variations={variations} />
+        <RightSidebar
+          variations={variations}
+          campaignData={campaignData}
+          campaignFilters={campaignFilters}
+          selectedButtons={selectedButtons}
+        />
       </div>
     </div>
   );
