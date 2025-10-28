@@ -3,12 +3,13 @@ import './RightSidebar.css';
 
 interface RightSidebarProps {
   variations?: any;
+  variationsForCombination?: { channelCode: string; goalSlug: string; voiceSlug: string } | null;
   campaignData?: any;
   campaignFilters?: any;
   selectedButtons?: { channelCode: string; goalSlug: string; voiceSlug: string } | null;
 }
 
-const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, campaignFilters, selectedButtons }) => {
+const RightSidebar: React.FC<RightSidebarProps> = ({ variations, variationsForCombination, campaignData, campaignFilters, selectedButtons }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState('campaign'); // 'campaign' or 'other'
   const [customCampaignSuggestion, setCustomCampaignSuggestion] = useState(''); // For storing custom combined paragraph
@@ -49,9 +50,13 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
     }
   }, [campaignData]);
 
-  // Initialize campaign data with default values (text + spread-the-word + charismatic)
+  // Initialize campaign content from variations (prioritize variations over campaignData)
   useEffect(() => {
-    if (campaignData?.matrix?.charismatic) {
+    if (variations) {
+      // If we have variations (from generated campaigns), always show them
+      setCampaignContent(variations);
+    } else if (campaignData?.matrix?.charismatic) {
+      // Fall back to campaignData.matrix if no variations
       const charismatic = campaignData.matrix.charismatic;
       const defaultChannel = 'text';
       const defaultGoal = 'spread-the-word';
@@ -64,49 +69,82 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
         setSelectedGoal(defaultGoal);
         setSelectedVoice(defaultVoice);
         setCampaignContent(content);
-      } else {
-        // Default campaign content not found
       }
+    } else {
+      // No variations and no campaignData - clear content
+      setCampaignContent(null);
     }
-  }, [campaignData]);
+  }, [variations, campaignData]);
 
 
 
   // Update campaign content when button selections change
   useEffect(() => {
-    if (selectedButtons && campaignData?.matrix?.charismatic) {
-      const charismatic = campaignData.matrix.charismatic;
+    if (selectedButtons) {
       const { channelCode, goalSlug, voiceSlug } = selectedButtons;
 
-      // Check if this combination exists in the campaign data
-      const content = charismatic[channelCode]?.[goalSlug]?.[voiceSlug];
+      // PRIORITY 1: If variations exist, show them (both URL and Story mode)
+      if (variations) {
+        // Check if the selected combination matches the combination the variations were generated for
+        if (variationsForCombination &&
+            variationsForCombination.channelCode === channelCode &&
+            variationsForCombination.goalSlug === goalSlug &&
+            variationsForCombination.voiceSlug === voiceSlug) {
+          // Show variations for this combination
+          setCampaignContent(variations);
+          setSelectedSocialChannel(channelCode);
+          setSelectedGoal(goalSlug);
+          setSelectedVoice(voiceSlug);
+          setSectionIndices({
+            opening_paragraph: 0,
+            core_message: 0,
+            supporting_evidence: 0,
+            emotional_appeal: 0,
+            call_to_action: 0
+          });
+        } else {
+          // Different combination selected, clear content
+          setCampaignContent(null);
+        }
+      }
+      // PRIORITY 2: If no variations, check campaignData.matrix (Story mode)
+      else if (campaignData?.matrix?.charismatic) {
+        const charismatic = campaignData.matrix.charismatic;
 
-      if (content) {
-        setSelectedSocialChannel(channelCode);
-        setSelectedGoal(goalSlug);
-        setSelectedVoice(voiceSlug);
-        setCampaignContent(content);
-        // Reset section indices when new content is loaded
-        setSectionIndices({
-          opening_paragraph: 0,
-          core_message: 0,
-          supporting_evidence: 0,
-          emotional_appeal: 0,
-          call_to_action: 0
-        });
-      } else {
-        // If combination doesn't exist, show default values
+        // Check if this combination exists in the campaign data
+        const content = charismatic[channelCode]?.[goalSlug]?.[voiceSlug];
+
+        if (content) {
+          setSelectedSocialChannel(channelCode);
+          setSelectedGoal(goalSlug);
+          setSelectedVoice(voiceSlug);
+          setCampaignContent(content);
+          // Reset section indices when new content is loaded
+          setSectionIndices({
+            opening_paragraph: 0,
+            core_message: 0,
+            supporting_evidence: 0,
+            emotional_appeal: 0,
+            call_to_action: 0
+          });
+        } else {
+          // If combination doesn't exist, show default values
+          setCampaignContent(null);
+          setSectionIndices({
+            opening_paragraph: 0,
+            core_message: 0,
+            supporting_evidence: 0,
+            emotional_appeal: 0,
+            call_to_action: 0
+          });
+        }
+      }
+      // PRIORITY 3: No variations and no campaignData - clear content
+      else {
         setCampaignContent(null);
-        setSectionIndices({
-          opening_paragraph: 0,
-          core_message: 0,
-          supporting_evidence: 0,
-          emotional_appeal: 0,
-          call_to_action: 0
-        });
       }
     }
-  }, [selectedButtons, campaignData]);
+  }, [selectedButtons, campaignData, variations]);
 
   // Reset sidebar state when variations change (e.g., when switching URLs)
   useEffect(() => {
@@ -174,7 +212,23 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
     if (campaignContent && campaignContent[sectionKey] && campaignContent[sectionKey].length > 0) {
       return campaignContent[sectionKey][sectionIndices[sectionKey]];
     }
-    // Then check variations
+    // In URL mode with variations, don't fall back to variations if campaignContent is null
+    // This ensures we only show variations for the matching combination
+    if (!campaignData?.matrix && variations) {
+      // URL mode - only use variations if they match the current combination
+      if (variationsForCombination &&
+          selectedButtons &&
+          variationsForCombination.channelCode === selectedButtons.channelCode &&
+          variationsForCombination.goalSlug === selectedButtons.goalSlug &&
+          variationsForCombination.voiceSlug === selectedButtons.voiceSlug) {
+        if (variations[sectionKey] && variations[sectionKey].length > 0) {
+          return variations[sectionKey][sectionIndices[sectionKey]];
+        }
+      }
+      // If combinations don't match, return default content
+      return defaultContent;
+    }
+    // In story mode, fall back to variations
     if (variations && variations[sectionKey] && variations[sectionKey].length > 0) {
       return variations[sectionKey][sectionIndices[sectionKey]];
     }
@@ -212,7 +266,38 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
       }
     }
 
-    // Otherwise, use the default first elements from variations
+    // In URL mode with variations, only use variations if they match the current combination
+    if (!campaignData?.matrix && variations) {
+      if (variationsForCombination &&
+          selectedButtons &&
+          variationsForCombination.channelCode === selectedButtons.channelCode &&
+          variationsForCombination.goalSlug === selectedButtons.goalSlug &&
+          variationsForCombination.voiceSlug === selectedButtons.voiceSlug) {
+        const sections = [
+          'opening_paragraph',
+          'core_message',
+          'supporting_evidence',
+          'emotional_appeal',
+          'call_to_action'
+        ];
+
+        const combinedText = sections
+          .map(section => {
+            if (variations[section] && variations[section].length > 0) {
+              return variations[section][0]; // Get first element from each section
+            }
+            return '';
+          })
+          .filter(text => text.trim() !== '') // Remove empty sections
+          .join(' '); // Join with spaces to form one paragraph
+
+        return combinedText || "Campaign suggestions will appear here after creating a campaign.";
+      }
+      // If combinations don't match, show default message
+      return "No campaign suggestions available. Please create a campaign first.";
+    }
+
+    // In story mode, use variations as fallback
     if (!variations) {
       return "No campaign suggestions available. Please create a campaign first.";
     }

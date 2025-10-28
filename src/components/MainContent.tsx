@@ -51,7 +51,8 @@ interface MainContentProps {
   chunkFacts: string[];
   chunkFactsReady: boolean;
   chunkFactsData: any;
-  onVariationsGenerated?: (variations: any) => void;
+  onVariationsGenerated?: (variations: any, combinationInfo?: any) => void;
+  onStoryVariationsGenerated?: (variations: any, combinationInfo?: any) => void;
   currentUrl: string;
   goButtonClicked?: boolean;
   storyData?: StoryData | null;
@@ -61,6 +62,7 @@ interface MainContentProps {
   shouldActivateStoryTab?: boolean;
   onStoryTabActivated?: () => void;
   onButtonSelectionChange?: (channelCode: string, goalSlug: string, voiceSlug: string) => void;
+  onCampaignDataUpdate?: (campaignData: any) => void;
   campaignData?: any;
   currentFactsForCampaign?: { url_facts: string[]; rag_facts: { facts: string[] } } | null;
   currentStoryId?: number | null;
@@ -68,7 +70,7 @@ interface MainContentProps {
   setUrlCampaignHistory?: (history: any) => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange, campaignData, currentFactsForCampaign, currentStoryId, urlCampaignHistory = {}, setUrlCampaignHistory }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, onStoryVariationsGenerated, currentUrl, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange, onCampaignDataUpdate, campaignData, currentFactsForCampaign, currentStoryId, urlCampaignHistory = {}, setUrlCampaignHistory }) => {
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
@@ -184,14 +186,15 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
             // Restore variations if they exist
             if (latestEntry.response.variations) {
-              if (onVariationsGenerated) {
-                onVariationsGenerated(latestEntry.response.variations);
+              if (onStoryVariationsGenerated) {
+                const channelCode = socialChannels[latestEntry.settings.socialChannel]?.code;
+                const goalSlug = actionButtons[latestEntry.settings.actionButton]?.slug;
+                const voiceSlug = characteristicTags[latestEntry.settings.characteristic]?.slug;
+                onStoryVariationsGenerated(latestEntry.response.variations, { channelCode, goalSlug, voiceSlug });
               }
             } else {
-              // No variations, clear them
-              if (onVariationsGenerated) {
-                onVariationsGenerated(null);
-              }
+              // No variations, don't clear them - let RightSidebar show campaignData
+              // For story mode, we don't call onStoryVariationsGenerated(null)
             }
 
             // Mark as not a new session since we have history
@@ -204,17 +207,15 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           setLastCampaignSettings(null);
           setIsNewStorySession(true);
 
-          // Clear variations from parent component
-          if (onVariationsGenerated) {
-            onVariationsGenerated(null);
-          }
+          // For story mode, don't clear variations - let RightSidebar show default state
         }
       }
       // Update the ref to track current story
       prevStoryIdRef.current = currentStoryId;
     } else if (prevStoryIdRef.current !== null) {
       // User switched from a story to a URL (currentStoryId is now null)
-      // Reset the middle and right components to default state
+      // Don't clear variations here - let the URL restoration effect handle it
+      // Reset the middle component to default state
       setCampaignResponse(null);
       setShowUndoRedo(false);
       setLastCampaignSettings(null);
@@ -223,13 +224,11 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       setActiveActionButton(0);
       setActiveCharacteristic(0);
 
-      // Clear variations from parent component
-      if (onVariationsGenerated) {
-        onVariationsGenerated(null);
-      }
-
       // Update the ref to track that we're no longer on a story
       prevStoryIdRef.current = null;
+
+      // Trigger URL restoration by resetting prevUrlRef so the URL effect runs
+      prevUrlRef.current = '';
     }
   }, [currentStoryId, onVariationsGenerated, storyCampaignHistory]);
 
@@ -284,7 +283,11 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           }
 
           if (onVariationsGenerated) {
-            onVariationsGenerated(latestEntry.response.variations);
+            // Get the combination info from the latest entry
+            const channelCode = socialChannels[latestEntry.settings.socialChannel]?.code;
+            const goalSlug = actionButtons[latestEntry.settings.actionButton]?.slug;
+            const voiceSlug = characteristicTags[latestEntry.settings.characteristic]?.slug;
+            onVariationsGenerated(latestEntry.response.variations, { channelCode, goalSlug, voiceSlug });
           }
         } else {
           // URL has no history, show fresh state
@@ -303,7 +306,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         }
       }
     }
-  }, [currentUrl, currentStoryId, urlCampaignHistory, onVariationsGenerated, setUrlCampaignHistory]);
+  }, [currentUrl, currentStoryId, urlCampaignHistory]);
 
   // Automatically select "Story Facts" tab when GO button is clicked
   useEffect(() => {
@@ -496,8 +499,22 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       setCampaignResponse(data);
 
       // Pass variations to parent component
-      if (data.ok && data.variations && onVariationsGenerated) {
-        onVariationsGenerated(data.variations);
+      if (data.ok && data.variations) {
+        const channelCode = socialChannels[activeSocialChannel]?.code;
+        const goalSlug = actionButtons[activeActionButton]?.slug;
+        const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
+
+        if (currentStoryId !== null && currentStoryId !== undefined) {
+          // Story mode
+          if (onStoryVariationsGenerated) {
+            onStoryVariationsGenerated(data.variations, { channelCode, goalSlug, voiceSlug });
+          }
+        } else {
+          // URL mode
+          if (onVariationsGenerated) {
+            onVariationsGenerated(data.variations, { channelCode, goalSlug, voiceSlug });
+          }
+        }
 
         // Add to campaign history - STORY or URL depending on what's selected
         const newHistoryEntry = {
@@ -704,24 +721,44 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         setShowUndoRedo(false);
       }
 
+      // Restore variations from campaign
       if (mostRecentCampaign.response.variations) {
-        if (onVariationsGenerated) {
-          onVariationsGenerated(mostRecentCampaign.response.variations);
+        if (currentStoryId !== null && currentStoryId !== undefined) {
+          // Story mode
+          if (onStoryVariationsGenerated) {
+            onStoryVariationsGenerated(mostRecentCampaign.response.variations, { channelCode: newChannelCode, goalSlug, voiceSlug });
+          }
+        } else {
+          // URL mode
+          if (onVariationsGenerated) {
+            onVariationsGenerated(mostRecentCampaign.response.variations, { channelCode: newChannelCode, goalSlug, voiceSlug });
+          }
         }
       } else {
-        if (onVariationsGenerated) {
-          onVariationsGenerated(null);
+        // Campaign exists but has no variations
+        if (currentStoryId === null || currentStoryId === undefined) {
+          // URL mode - clear variations
+          if (onVariationsGenerated) {
+            onVariationsGenerated(null);
+          }
         }
+        // Story mode - don't clear variations, let RightSidebar show campaignData
       }
     } else {
       // No campaign for this combination, show default/empty state
       setCampaignResponse(null);
       setShowUndoRedo(false); // Hide undo/redo buttons
-      if (onVariationsGenerated) {
-        onVariationsGenerated(null);
+
+      // Clear variations only for URL mode
+      if (currentStoryId === null || currentStoryId === undefined) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null);
+        }
       }
+      // Story mode - don't clear variations, let RightSidebar show campaignData
     }
 
+    // Call onButtonSelectionChange AFTER restoring variations so selectedButtons is updated
     if (newChannelCode && goalSlug && voiceSlug) {
       onButtonSelectionChange?.(newChannelCode, goalSlug, voiceSlug);
     }
@@ -765,22 +802,41 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         setShowUndoRedo(false);
       }
 
+      // Restore variations from campaign
       if (mostRecentCampaign.response.variations) {
-        if (onVariationsGenerated) {
-          onVariationsGenerated(mostRecentCampaign.response.variations);
+        if (currentStoryId !== null && currentStoryId !== undefined) {
+          // Story mode
+          if (onStoryVariationsGenerated) {
+            onStoryVariationsGenerated(mostRecentCampaign.response.variations, { channelCode, goalSlug: newGoalSlug, voiceSlug });
+          }
+        } else {
+          // URL mode
+          if (onVariationsGenerated) {
+            onVariationsGenerated(mostRecentCampaign.response.variations, { channelCode, goalSlug: newGoalSlug, voiceSlug });
+          }
         }
       } else {
-        if (onVariationsGenerated) {
-          onVariationsGenerated(null);
+        // Campaign exists but has no variations
+        if (currentStoryId === null || currentStoryId === undefined) {
+          // URL mode - clear variations
+          if (onVariationsGenerated) {
+            onVariationsGenerated(null);
+          }
         }
+        // Story mode - don't clear variations, let RightSidebar show campaignData
       }
     } else {
       // No campaign for this combination, show default/empty state
       setCampaignResponse(null);
       setShowUndoRedo(false); // Hide undo/redo buttons
-      if (onVariationsGenerated) {
-        onVariationsGenerated(null);
+
+      // Clear variations only for URL mode
+      if (currentStoryId === null || currentStoryId === undefined) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null);
+        }
       }
+      // Story mode - don't clear variations, let RightSidebar show campaignData
     }
 
     if (channelCode && newGoalSlug && voiceSlug) {
@@ -826,22 +882,41 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         setShowUndoRedo(false);
       }
 
+      // Restore variations from campaign
       if (mostRecentCampaign.response.variations) {
-        if (onVariationsGenerated) {
-          onVariationsGenerated(mostRecentCampaign.response.variations);
+        if (currentStoryId !== null && currentStoryId !== undefined) {
+          // Story mode
+          if (onStoryVariationsGenerated) {
+            onStoryVariationsGenerated(mostRecentCampaign.response.variations, { channelCode, goalSlug, voiceSlug: newVoiceSlug });
+          }
+        } else {
+          // URL mode
+          if (onVariationsGenerated) {
+            onVariationsGenerated(mostRecentCampaign.response.variations, { channelCode, goalSlug, voiceSlug: newVoiceSlug });
+          }
         }
       } else {
-        if (onVariationsGenerated) {
-          onVariationsGenerated(null);
+        // Campaign exists but has no variations
+        if (currentStoryId === null || currentStoryId === undefined) {
+          // URL mode - clear variations
+          if (onVariationsGenerated) {
+            onVariationsGenerated(null);
+          }
         }
+        // Story mode - don't clear variations, let RightSidebar show campaignData
       }
     } else {
       // No campaign for this combination, show default/empty state
       setCampaignResponse(null);
       setShowUndoRedo(false); // Hide undo/redo buttons
-      if (onVariationsGenerated) {
-        onVariationsGenerated(null);
+
+      // Clear variations only for URL mode
+      if (currentStoryId === null || currentStoryId === undefined) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null);
+        }
       }
+      // Story mode - don't clear variations, let RightSidebar show campaignData
     }
 
     if (channelCode && goalSlug && newVoiceSlug) {
@@ -969,15 +1044,51 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
         setCampaignResponse(previousCampaign.response);
 
-        // If this entry has variations, show them; otherwise show cached campaign data
+        // Update campaignData in App.tsx if this entry has a matrix
+        if (previousCampaign.response.matrix && onCampaignDataUpdate) {
+          onCampaignDataUpdate({ matrix: previousCampaign.response.matrix });
+        }
+
+        // Restore the button selections to match the previous campaign's settings
+        setActiveSocialChannel(previousCampaign.settings.socialChannel);
+        setActiveActionButton(previousCampaign.settings.actionButton);
+        setActiveCharacteristic(previousCampaign.settings.characteristic);
+
+        // Get the channel code, goal slug, and voice slug for the previous campaign
+        const channelCode = socialChannels[previousCampaign.settings.socialChannel]?.code;
+        const goalSlug = actionButtons[previousCampaign.settings.actionButton]?.slug;
+        const voiceSlug = characteristicTags[previousCampaign.settings.characteristic]?.slug;
+
+        // Call onButtonSelectionChange to update parent's selectedButtons state
+        if (channelCode && goalSlug && voiceSlug && onButtonSelectionChange) {
+          onButtonSelectionChange(channelCode, goalSlug, voiceSlug);
+        }
+
+        // If this entry has variations, show them; otherwise clear variations to show cached campaign data
         if (previousCampaign.response.variations) {
-          if (onVariationsGenerated) {
-            onVariationsGenerated(previousCampaign.response.variations);
+          if (currentStoryId !== null && currentStoryId !== undefined) {
+            // Story mode
+            if (onStoryVariationsGenerated) {
+              onStoryVariationsGenerated(previousCampaign.response.variations, { channelCode, goalSlug, voiceSlug });
+            }
+          } else {
+            // URL mode
+            if (onVariationsGenerated) {
+              onVariationsGenerated(previousCampaign.response.variations, { channelCode, goalSlug, voiceSlug });
+            }
           }
         } else if (previousCampaign.response.matrix) {
-          // This is the initial cached campaign data, restore it
-          if (onVariationsGenerated) {
-            onVariationsGenerated(null); // Clear variations
+          // This is the initial cached campaign data, clear variations so RightSidebar shows campaignData.matrix
+          if (currentStoryId !== null && currentStoryId !== undefined) {
+            // Story mode - clear variations to show campaignData.matrix
+            if (onStoryVariationsGenerated) {
+              onStoryVariationsGenerated(null);
+            }
+          } else {
+            // URL mode - clear variations
+            if (onVariationsGenerated) {
+              onVariationsGenerated(null);
+            }
           }
         }
       }
@@ -1014,15 +1125,51 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
         setCampaignResponse(nextCampaign.response);
 
-        // If this entry has variations, show them; otherwise show cached campaign data
+        // Update campaignData in App.tsx if this entry has a matrix
+        if (nextCampaign.response.matrix && onCampaignDataUpdate) {
+          onCampaignDataUpdate({ matrix: nextCampaign.response.matrix });
+        }
+
+        // Restore the button selections to match the next campaign's settings
+        setActiveSocialChannel(nextCampaign.settings.socialChannel);
+        setActiveActionButton(nextCampaign.settings.actionButton);
+        setActiveCharacteristic(nextCampaign.settings.characteristic);
+
+        // Get the channel code, goal slug, and voice slug for the next campaign
+        const channelCode = socialChannels[nextCampaign.settings.socialChannel]?.code;
+        const goalSlug = actionButtons[nextCampaign.settings.actionButton]?.slug;
+        const voiceSlug = characteristicTags[nextCampaign.settings.characteristic]?.slug;
+
+        // Call onButtonSelectionChange to update parent's selectedButtons state
+        if (channelCode && goalSlug && voiceSlug && onButtonSelectionChange) {
+          onButtonSelectionChange(channelCode, goalSlug, voiceSlug);
+        }
+
+        // If this entry has variations, show them; otherwise clear variations to show cached campaign data
         if (nextCampaign.response.variations) {
-          if (onVariationsGenerated) {
-            onVariationsGenerated(nextCampaign.response.variations);
+          if (currentStoryId !== null && currentStoryId !== undefined) {
+            // Story mode
+            if (onStoryVariationsGenerated) {
+              onStoryVariationsGenerated(nextCampaign.response.variations, { channelCode, goalSlug, voiceSlug });
+            }
+          } else {
+            // URL mode
+            if (onVariationsGenerated) {
+              onVariationsGenerated(nextCampaign.response.variations, { channelCode, goalSlug, voiceSlug });
+            }
           }
         } else if (nextCampaign.response.matrix) {
-          // This is the initial cached campaign data, restore it
-          if (onVariationsGenerated) {
-            onVariationsGenerated(null); // Clear variations
+          // This is the initial cached campaign data, clear variations so RightSidebar shows campaignData.matrix
+          if (currentStoryId !== null && currentStoryId !== undefined) {
+            // Story mode - clear variations to show campaignData.matrix
+            if (onStoryVariationsGenerated) {
+              onStoryVariationsGenerated(null);
+            }
+          } else {
+            // URL mode - clear variations
+            if (onVariationsGenerated) {
+              onVariationsGenerated(null);
+            }
           }
         }
       }

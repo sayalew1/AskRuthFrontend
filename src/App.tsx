@@ -85,7 +85,16 @@ function App() {
   const [chunkFacts, setChunkFacts] = useState<string[]>([]);
   const [chunkFactsReady, setChunkFactsReady] = useState<boolean>(false);
   const [chunkFactsData, setChunkFactsData] = useState<any>(null);
-  const [variations, setVariations] = useState<any>(null);
+  // Story mode state
+  const [storyVariations, setStoryVariations] = useState<any>(null);
+  const [storyVariationsForCombination, setStoryVariationsForCombination] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
+  const [storySelectedButtons, setStorySelectedButtons] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
+
+  // URL mode state
+  const [urlVariations, setUrlVariations] = useState<any>(null);
+  const [urlVariationsForCombination, setUrlVariationsForCombination] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
+  const [urlSelectedButtons, setUrlSelectedButtons] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
+
   const [currentUrl, setCurrentUrl] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
   const [goButtonClicked, setGoButtonClicked] = useState<boolean>(false);
@@ -95,12 +104,24 @@ function App() {
   const [campaignData, setCampaignData] = useState<CampaignData | null>(null);
   const [isLoadingStory, setIsLoadingStory] = useState<boolean>(false);
   const [shouldActivateStoryTab, setShouldActivateStoryTab] = useState<boolean>(false);
-  const [selectedButtons, setSelectedButtons] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
   const [campaignDataCache, setCampaignDataCache] = useState<{ [storyId: number]: CampaignData }>({});
   const [storyDataCache, setStoryDataCache] = useState<{ [storyId: number]: StoryData }>({});
   const [factsForCampaignCache, setFactsForCampaignCache] = useState<{ [storyId: number]: { url_facts: string[]; rag_facts: { facts: string[] } } }>({});
   const [currentFactsForCampaign, setCurrentFactsForCampaign] = useState<{ url_facts: string[]; rag_facts: { facts: string[] } } | null>(null);
   const [currentStoryId, setCurrentStoryId] = useState<number | null>(null);
+  const [shouldResetSidebarSelection, setShouldResetSidebarSelection] = useState(false);
+  const prevStoryIdRef = React.useRef<number | null>(null);
+
+  // Handle story-to-URL transition to reset sidebar selection
+  React.useEffect(() => {
+    if (prevStoryIdRef.current !== null && currentStoryId === null) {
+      // Transitioning from story to URL mode
+      setShouldResetSidebarSelection(true);
+      // Reset the flag after a short delay
+      setTimeout(() => setShouldResetSidebarSelection(false), 100);
+    }
+    prevStoryIdRef.current = currentStoryId;
+  }, [currentStoryId]);
 
   // Track campaign history per URL (lifted from MainContent)
   const [urlCampaignHistory, setUrlCampaignHistory] = useState<{
@@ -192,36 +213,68 @@ function App() {
     }
   };
 
-  const handleVariationsGenerated = (variationsData: any) => {
-    if (variationsData === null) {
-      // When variations are null, restore the cached campaign data
-      if (currentStoryId !== null && campaignDataCache[currentStoryId]) {
-        setCampaignData(campaignDataCache[currentStoryId]);
+  // STORY MODE ONLY - Handle variations generated for story campaigns
+  const handleStoryVariationsGenerated = (variationsData: any, combinationInfo?: any) => {
+    if (currentStoryId !== null) {
+      // STORY MODE ONLY
+      if (variationsData === null) {
+        // Don't clear variations for story mode - let RightSidebar show campaignData
+        setStoryVariations(null);
+        setStoryVariationsForCombination(null);
+      } else {
+        setStoryVariations(variationsData);
+        if (combinationInfo) {
+          setStoryVariationsForCombination(combinationInfo);
+        } else if (storySelectedButtons) {
+          setStoryVariationsForCombination(storySelectedButtons);
+        }
       }
-      setVariations(null);
+    }
+  };
+
+  // URL MODE ONLY - Handle variations generated for URL campaigns
+  const handleVariationsGenerated = (variationsData: any, combinationInfo?: any) => {
+    // URL MODE ONLY
+    if (variationsData === null) {
+      setUrlVariations(null);
+      setUrlVariationsForCombination(null);
+      setCampaignData(null);
     } else {
-      // When variations are generated, clear campaignData so RightSidebar shows the generated variations
-      setVariations(variationsData);
+      setUrlVariations(variationsData);
+      if (combinationInfo) {
+        setUrlVariationsForCombination(combinationInfo);
+      } else if (urlSelectedButtons) {
+        setUrlVariationsForCombination(urlSelectedButtons);
+      }
       setCampaignData(null);
     }
   };
 
   const handleButtonSelectionChange = (channelCode: string, goalSlug: string, voiceSlug: string) => {
-    setSelectedButtons({ channelCode, goalSlug, voiceSlug });
-
-    // Restore cached campaign data when button selection changes
-    // This allows the RightSidebar to show the cached campaign data for the selected combination
-    if (currentStoryId !== null && campaignDataCache[currentStoryId]) {
-      setCampaignData(campaignDataCache[currentStoryId]);
-      setVariations(null); // Clear variations so cached campaign data is shown
+    if (currentStoryId !== null) {
+      // STORY MODE
+      setStorySelectedButtons({ channelCode, goalSlug, voiceSlug });
+      if (campaignDataCache[currentStoryId]) {
+        setCampaignData(campaignDataCache[currentStoryId]);
+      }
+    } else {
+      // URL MODE
+      setUrlSelectedButtons({ channelCode, goalSlug, voiceSlug });
+      // Don't clear variations here - let the button click handler manage them
     }
+  };
+
+  const handleCampaignDataUpdate = (newCampaignData: CampaignData | null) => {
+    setCampaignData(newCampaignData);
   };
 
   const handleUrlChanged = (url: string) => {
     setCurrentUrl(url);
     setSearchText(url); // Update search bar when URL changes
-    // Clear variations immediately when a new URL is being processed
-    setVariations(null);
+    // Clear URL variations immediately when a new URL is being processed
+    setUrlVariations(null);
+    setUrlVariationsForCombination(null);
+    setUrlSelectedButtons(null);
     // Clear story data when a new URL is entered
     setStoryData(null);
     setStoryTitle('');
@@ -244,7 +297,11 @@ function App() {
     setStoryData(null);
     setStoryTitle('');
     setCampaignData(null);
-    setVariations(null);
+
+    // IMPORTANT: Clear URL variations so the URL effect can restore them from history
+    setUrlVariations(null);
+    setUrlVariationsForCombination(null);
+    setUrlSelectedButtons(null);
 
     // Restore URL data from cache
     const cachedUrlData = urlDataCache[url];
@@ -261,6 +318,8 @@ function App() {
   };
 
   const handleGoButtonClicked = () => {
+    // Unselect any story when GO button is clicked
+    setCurrentStoryId(null);
     setGoButtonClicked(true);
     // Reset the flag after a short delay to allow MainContent to react
     setTimeout(() => setGoButtonClicked(false), 100);
@@ -346,8 +405,9 @@ function App() {
     setChunkFactsData(null);
     setChunkFactsReady(false);
     setCampaignData(null);
-    setVariations(null);
-    setSelectedButtons(null);
+    setStoryVariations(null);
+    setStoryVariationsForCombination(null);
+    setStorySelectedButtons(null);
 
     try {
       // Set the story title if provided
@@ -467,13 +527,14 @@ function App() {
         urlDataCache={urlDataCache}
       />
       <div className="app-body">
-        <Sidebar onStoryCardClick={handleStoryCardClick} resetSelection={goButtonClicked} />
+        <Sidebar onStoryCardClick={handleStoryCardClick} resetSelection={goButtonClicked || shouldResetSidebarSelection} />
         <MainContent
           storyFacts={storyFacts}
           chunkFacts={chunkFacts}
           chunkFactsReady={chunkFactsReady}
           chunkFactsData={chunkFactsData}
           onVariationsGenerated={handleVariationsGenerated}
+          onStoryVariationsGenerated={handleStoryVariationsGenerated}
           currentUrl={currentUrl}
           goButtonClicked={goButtonClicked}
           storyData={storyData}
@@ -483,6 +544,7 @@ function App() {
           shouldActivateStoryTab={shouldActivateStoryTab}
           onStoryTabActivated={() => setShouldActivateStoryTab(false)}
           onButtonSelectionChange={handleButtonSelectionChange}
+          onCampaignDataUpdate={handleCampaignDataUpdate}
           campaignData={campaignData}
           currentFactsForCampaign={currentFactsForCampaign}
           currentStoryId={currentStoryId}
@@ -490,10 +552,11 @@ function App() {
           setUrlCampaignHistory={setUrlCampaignHistory}
         />
         <RightSidebar
-          variations={variations}
+          variations={currentStoryId !== null ? storyVariations : urlVariations}
+          variationsForCombination={currentStoryId !== null ? storyVariationsForCombination : urlVariationsForCombination}
           campaignData={campaignData}
           campaignFilters={campaignFilters}
-          selectedButtons={selectedButtons}
+          selectedButtons={currentStoryId !== null ? storySelectedButtons : urlSelectedButtons}
         />
       </div>
     </div>
