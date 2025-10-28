@@ -53,7 +53,6 @@ interface MainContentProps {
   chunkFactsData: any;
   onVariationsGenerated?: (variations: any) => void;
   currentUrl: string;
-  onUrlSwitch?: (url: string) => void;
   goButtonClicked?: boolean;
   storyData?: StoryData | null;
   storyTitle?: string;
@@ -65,9 +64,11 @@ interface MainContentProps {
   campaignData?: any;
   currentFactsForCampaign?: { url_facts: string[]; rag_facts: { facts: string[] } } | null;
   currentStoryId?: number | null;
+  urlCampaignHistory?: { [url: string]: { history: any[]; currentIndex: number; lastSettings: any } };
+  setUrlCampaignHistory?: (history: any) => void;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange, campaignData, currentFactsForCampaign, currentStoryId }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange, campaignData, currentFactsForCampaign, currentStoryId, urlCampaignHistory = {}, setUrlCampaignHistory }) => {
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
@@ -82,19 +83,6 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     actionButton: number;
     characteristic: number;
   } | null>(null);
-
-  // Track campaign history per URL
-  const [urlCampaignHistory, setUrlCampaignHistory] = React.useState<{
-    [url: string]: {
-      history: any[];
-      currentIndex: number;
-      lastSettings: {
-        socialChannel: number;
-        actionButton: number;
-        characteristic: number;
-      } | null;
-    }
-  }>({});
 
   // Track campaign history per Story (completely separate from URLs)
   const [storyCampaignHistory, setStoryCampaignHistory] = React.useState<{
@@ -113,7 +101,6 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const [showUndoRedo, setShowUndoRedo] = React.useState(false);
   const [isNewUrlSession, setIsNewUrlSession] = React.useState(true);
   const [isNewStorySession, setIsNewStorySession] = React.useState(true);
-  const [showUrlDropdown, setShowUrlDropdown] = React.useState(false);
   const [showNoFactsPopup, setShowNoFactsPopup] = React.useState(false);
 
   // Effect to measure and sync component height with right sidebar
@@ -151,6 +138,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   // Track the previous story ID to detect when story changes
   const prevStoryIdRef = React.useRef<number | null>(null);
+
+  // Track if we're currently restoring settings to avoid triggering button click handlers
+  const isRestoringSettingsRef = React.useRef<boolean>(false);
 
   // Handle story changes - restore cached campaigns or reset to fresh state
   useEffect(() => {
@@ -222,8 +212,98 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       }
       // Update the ref to track current story
       prevStoryIdRef.current = currentStoryId;
+    } else if (prevStoryIdRef.current !== null) {
+      // User switched from a story to a URL (currentStoryId is now null)
+      // Reset the middle and right components to default state
+      setCampaignResponse(null);
+      setShowUndoRedo(false);
+      setLastCampaignSettings(null);
+      setIsNewUrlSession(true);
+      setActiveSocialChannel(0);
+      setActiveActionButton(0);
+      setActiveCharacteristic(0);
+
+      // Clear variations from parent component
+      if (onVariationsGenerated) {
+        onVariationsGenerated(null);
+      }
+
+      // Update the ref to track that we're no longer on a story
+      prevStoryIdRef.current = null;
     }
   }, [currentStoryId, onVariationsGenerated, storyCampaignHistory]);
+
+  // Track the previous URL to detect when URL changes
+  const prevUrlRef = React.useRef<string>('');
+
+  // Handle URL changes - restore cached campaigns for that URL
+  useEffect(() => {
+    // When we're in URL mode (currentStoryId is null) and either:
+    // 1. URL has changed, OR
+    // 2. We just switched from story mode to URL mode (prevUrlRef was reset)
+    if (currentUrl && currentStoryId === null) {
+      if (currentUrl !== prevUrlRef.current) {
+        // URL has changed or we're switching from story to URL mode
+        prevUrlRef.current = currentUrl;
+        setIsNewUrlSession(false); // Not a new session since we're switching back
+
+        // Get the selected URL's data and restore its state
+        const urlData = urlCampaignHistory[currentUrl];
+        if (urlData && urlData.history.length > 0) {
+          // Always go to the LAST (most recent) campaign for this URL
+          const lastIndex = urlData.history.length - 1;
+          const latestEntry = urlData.history[lastIndex];
+
+          // Update the URL data to point to the last campaign
+          const updatedUrlData = {
+            ...urlData,
+            currentIndex: lastIndex
+          };
+
+          if (setUrlCampaignHistory) {
+            setUrlCampaignHistory((prev: any) => ({
+              ...prev,
+              [currentUrl]: updatedUrlData
+            }));
+          }
+
+          setCampaignResponse(latestEntry.response);
+          setLastCampaignSettings(urlData.lastSettings);
+          setShowUndoRedo(urlData.history.length > 1);
+
+          // Restore the campaign settings from the latest entry
+          if (latestEntry.settings) {
+            isRestoringSettingsRef.current = true;
+            setActiveSocialChannel(latestEntry.settings.socialChannel);
+            setActiveActionButton(latestEntry.settings.actionButton);
+            setActiveCharacteristic(latestEntry.settings.characteristic);
+            // Reset the flag after a microtask to allow state updates to complete
+            Promise.resolve().then(() => {
+              isRestoringSettingsRef.current = false;
+            });
+          }
+
+          if (onVariationsGenerated) {
+            onVariationsGenerated(latestEntry.response.variations);
+          }
+        } else {
+          // URL has no history, show fresh state
+          setCampaignResponse(null);
+          setShowUndoRedo(false);
+          setLastCampaignSettings(null);
+
+          // Reset selections to default values for fresh URL
+          setActiveSocialChannel(0);
+          setActiveActionButton(0);
+          setActiveCharacteristic(0);
+
+          if (onVariationsGenerated) {
+            onVariationsGenerated(null);
+          }
+        }
+      }
+    }
+  }, [currentUrl, currentStoryId, urlCampaignHistory, onVariationsGenerated, setUrlCampaignHistory]);
 
   // Automatically select "Story Facts" tab when GO button is clicked
   useEffect(() => {
@@ -509,55 +589,19 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           }
         } else {
           // Handle URL campaign history
+          // For URLs: Only add the newly generated campaign (no initial cached campaign like stories)
           const urlData = getCurrentUrlData();
-          const isFirstForCombination = isFirstCampaignForCombination();
 
           let updatedHistory;
           let newIndex;
 
+          // For URLs, simply add the new campaign to history
+          updatedHistory = [...urlData.history, newHistoryEntry];
+          newIndex = updatedHistory.length - 1;
+
+          // Mark that we've created at least one campaign for this URL
           if (isNewUrlSession) {
-            // First time clicking "Create Campaign" or "Refresh" for this URL
-            // Add the initial cached campaign data first, then the new generated campaign
-            const initialHistoryEntry = {
-              response: {
-                ok: true,
-                variations: null,
-                matrix: cachedCampaignData?.matrix
-              },
-              timestamp: new Date().toISOString(),
-              settings: {
-                socialChannel: activeSocialChannel,
-                actionButton: activeActionButton,
-                characteristic: activeCharacteristic
-              }
-            };
-
-            updatedHistory = [initialHistoryEntry, newHistoryEntry];
-            newIndex = 1;
             setIsNewUrlSession(false);
-          } else if (isFirstForCombination) {
-            // First time generating a campaign for this specific combination
-            // Add the initial cached campaign data first, then the new generated campaign
-            const initialHistoryEntry = {
-              response: {
-                ok: true,
-                variations: null,
-                matrix: cachedCampaignData?.matrix
-              },
-              timestamp: new Date().toISOString(),
-              settings: {
-                socialChannel: activeSocialChannel,
-                actionButton: activeActionButton,
-                characteristic: activeCharacteristic
-              }
-            };
-
-            updatedHistory = [...urlData.history, initialHistoryEntry, newHistoryEntry];
-            newIndex = updatedHistory.length - 1;
-          } else {
-            // Continue existing history for this URL and combination
-            updatedHistory = [...urlData.history, newHistoryEntry];
-            newIndex = updatedHistory.length - 1;
           }
 
           // Update URL-specific data
@@ -623,35 +667,185 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   };
 
   const handleSocialChannelClick = (displayIndex: number) => {
+    // If we're currently restoring settings, don't process the click
+    if (isRestoringSettingsRef.current) {
+      return;
+    }
+
     setActiveSocialChannel(displayIndex);
-    setCampaignResponse(null); // Clear campaign response when button changes
-    const channelCode = socialChannels[displayIndex]?.code;
+
+    // Look for a campaign for this new combination
+    const newChannelCode = socialChannels[displayIndex]?.code;
     const goalSlug = actionButtons[activeActionButton]?.slug;
     const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
-    if (channelCode && goalSlug && voiceSlug) {
-      onButtonSelectionChange?.(channelCode, goalSlug, voiceSlug);
+
+    // Check if there's a campaign for this combination in history
+    const data = currentStoryId !== null && currentStoryId !== undefined ? getCurrentStoryData() : getCurrentUrlData();
+
+    // Find ALL campaigns for this combination
+    const campaignsForThisCombination = data.history.filter(entry => {
+      const entrySettings = entry.settings;
+      return (
+        entrySettings.socialChannel === displayIndex &&
+        entrySettings.actionButton === activeActionButton &&
+        entrySettings.characteristic === activeCharacteristic
+      );
+    });
+
+    if (campaignsForThisCombination.length > 0) {
+      // Show the most recent campaign for this combination
+      const mostRecentCampaign = campaignsForThisCombination[campaignsForThisCombination.length - 1];
+      setCampaignResponse(mostRecentCampaign.response);
+
+      // Show undo/redo buttons if there are multiple campaigns for this combination
+      if (campaignsForThisCombination.length > 1) {
+        setShowUndoRedo(true);
+      } else {
+        setShowUndoRedo(false);
+      }
+
+      if (mostRecentCampaign.response.variations) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(mostRecentCampaign.response.variations);
+        }
+      } else {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null);
+        }
+      }
+    } else {
+      // No campaign for this combination, show default/empty state
+      setCampaignResponse(null);
+      setShowUndoRedo(false); // Hide undo/redo buttons
+      if (onVariationsGenerated) {
+        onVariationsGenerated(null);
+      }
+    }
+
+    if (newChannelCode && goalSlug && voiceSlug) {
+      onButtonSelectionChange?.(newChannelCode, goalSlug, voiceSlug);
     }
   };
 
   const handleActionButtonClick = (displayIndex: number) => {
+    // If we're currently restoring settings, don't process the click
+    if (isRestoringSettingsRef.current) {
+      return;
+    }
+
     setActiveActionButton(displayIndex);
-    setCampaignResponse(null); // Clear campaign response when button changes
+
+    // Look for a campaign for this new combination
     const channelCode = socialChannels[activeSocialChannel]?.code;
-    const goalSlug = actionButtons[displayIndex]?.slug;
+    const newGoalSlug = actionButtons[displayIndex]?.slug;
     const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
-    if (channelCode && goalSlug && voiceSlug) {
-      onButtonSelectionChange?.(channelCode, goalSlug, voiceSlug);
+
+    // Check if there's a campaign for this combination in history
+    const data = currentStoryId !== null && currentStoryId !== undefined ? getCurrentStoryData() : getCurrentUrlData();
+
+    // Find ALL campaigns for this combination
+    const campaignsForThisCombination = data.history.filter(entry => {
+      const entrySettings = entry.settings;
+      return (
+        entrySettings.socialChannel === activeSocialChannel &&
+        entrySettings.actionButton === displayIndex &&
+        entrySettings.characteristic === activeCharacteristic
+      );
+    });
+
+    if (campaignsForThisCombination.length > 0) {
+      // Show the most recent campaign for this combination
+      const mostRecentCampaign = campaignsForThisCombination[campaignsForThisCombination.length - 1];
+      setCampaignResponse(mostRecentCampaign.response);
+
+      // Show undo/redo buttons if there are multiple campaigns for this combination
+      if (campaignsForThisCombination.length > 1) {
+        setShowUndoRedo(true);
+      } else {
+        setShowUndoRedo(false);
+      }
+
+      if (mostRecentCampaign.response.variations) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(mostRecentCampaign.response.variations);
+        }
+      } else {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null);
+        }
+      }
+    } else {
+      // No campaign for this combination, show default/empty state
+      setCampaignResponse(null);
+      setShowUndoRedo(false); // Hide undo/redo buttons
+      if (onVariationsGenerated) {
+        onVariationsGenerated(null);
+      }
+    }
+
+    if (channelCode && newGoalSlug && voiceSlug) {
+      onButtonSelectionChange?.(channelCode, newGoalSlug, voiceSlug);
     }
   };
 
   const handleCharacteristicClick = (index: number) => {
+    // If we're currently restoring settings, don't process the click
+    if (isRestoringSettingsRef.current) {
+      return;
+    }
+
     setActiveCharacteristic(index);
-    setCampaignResponse(null); // Clear campaign response when button changes
+
+    // Look for a campaign for this new combination
     const channelCode = socialChannels[activeSocialChannel]?.code;
     const goalSlug = actionButtons[activeActionButton]?.slug;
-    const voiceSlug = characteristicTags[index]?.slug;
-    if (channelCode && goalSlug && voiceSlug) {
-      onButtonSelectionChange?.(channelCode, goalSlug, voiceSlug);
+    const newVoiceSlug = characteristicTags[index]?.slug;
+
+    // Check if there's a campaign for this combination in history
+    const data = currentStoryId !== null && currentStoryId !== undefined ? getCurrentStoryData() : getCurrentUrlData();
+
+    // Find ALL campaigns for this combination
+    const campaignsForThisCombination = data.history.filter(entry => {
+      const entrySettings = entry.settings;
+      return (
+        entrySettings.socialChannel === activeSocialChannel &&
+        entrySettings.actionButton === activeActionButton &&
+        entrySettings.characteristic === index
+      );
+    });
+
+    if (campaignsForThisCombination.length > 0) {
+      // Show the most recent campaign for this combination
+      const mostRecentCampaign = campaignsForThisCombination[campaignsForThisCombination.length - 1];
+      setCampaignResponse(mostRecentCampaign.response);
+
+      // Show undo/redo buttons if there are multiple campaigns for this combination
+      if (campaignsForThisCombination.length > 1) {
+        setShowUndoRedo(true);
+      } else {
+        setShowUndoRedo(false);
+      }
+
+      if (mostRecentCampaign.response.variations) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(mostRecentCampaign.response.variations);
+        }
+      } else {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null);
+        }
+      }
+    } else {
+      // No campaign for this combination, show default/empty state
+      setCampaignResponse(null);
+      setShowUndoRedo(false); // Hide undo/redo buttons
+      if (onVariationsGenerated) {
+        onVariationsGenerated(null);
+      }
+    }
+
+    if (channelCode && goalSlug && newVoiceSlug) {
+      onButtonSelectionChange?.(channelCode, goalSlug, newVoiceSlug);
     }
   };
 
@@ -681,7 +875,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     currentIndex: number;
     lastSettings: any;
   }>) => {
-    setUrlCampaignHistory(prev => {
+    if (!setUrlCampaignHistory) return;
+
+    setUrlCampaignHistory((prev: any) => {
       const newHistory = {
         ...prev,
         [currentUrl]: {
@@ -893,91 +1089,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     return campaignsForCombination.length === 0;
   };
 
-  // Handle switching to a different URL from dropdown
-  const handleUrlSwitch = (selectedUrl: string) => {
 
-
-    // Notify parent component about the URL switch
-    if (onUrlSwitch) {
-      onUrlSwitch(selectedUrl);
-    }
-
-    setShowUrlDropdown(false);
-    setIsNewUrlSession(false); // Not a new session since we're switching back
-
-
-
-    // Get the selected URL's data and restore its state
-    const urlData = urlCampaignHistory[selectedUrl];
-    if (urlData && urlData.history.length > 0) {
-      // Always go to the LAST (most recent) campaign for this URL
-      const lastIndex = urlData.history.length - 1;
-      const latestEntry = urlData.history[lastIndex];
-
-      // Update the URL data to point to the last campaign
-      const updatedUrlData = {
-        ...urlData,
-        currentIndex: lastIndex
-      };
-
-      setUrlCampaignHistory(prev => ({
-        ...prev,
-        [selectedUrl]: updatedUrlData
-      }));
-
-      setCampaignResponse(latestEntry.response);
-      setLastCampaignSettings(urlData.lastSettings);
-      setShowUndoRedo(urlData.history.length > 1);
-
-      // Restore the campaign settings from the latest entry
-      if (latestEntry.settings) {
-        setActiveSocialChannel(latestEntry.settings.socialChannel);
-        setActiveActionButton(latestEntry.settings.actionButton);
-        setActiveCharacteristic(latestEntry.settings.characteristic);
-      }
-
-      if (onVariationsGenerated) {
-        onVariationsGenerated(latestEntry.response.variations);
-      }
-    } else {
-      // URL has no history, show fresh state
-      setCampaignResponse(null);
-      setShowUndoRedo(false);
-      setLastCampaignSettings(null);
-
-      // Reset selections to default values for fresh URL
-      setActiveSocialChannel(0);
-      setActiveActionButton(0);
-      setActiveCharacteristic(0);
-
-      if (onVariationsGenerated) {
-        onVariationsGenerated(null);
-      }
-    }
-  };
-
-  // Get list of all URLs for dropdown (filter out session-based URLs and stories)
-  const getAllUrls = () => {
-    const urls = Object.keys(urlCampaignHistory).filter(key =>
-      !key.startsWith('story-') && (key.startsWith('http://') || key.startsWith('https://'))
-    );
-    if (currentUrl && !urls.includes(currentUrl) && (currentUrl.startsWith('http://') || currentUrl.startsWith('https://'))) {
-      urls.push(currentUrl);
-    }
-
-    return urls.sort();
-  };
-
-  // Format URL for display (show domain + path, truncate if too long)
-  const formatUrlForDisplay = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      const display = urlObj.hostname + urlObj.pathname;
-      return display.length > 30 ? display.substring(0, 27) + '...' : display;
-    } catch {
-      return url.length > 30 ? url.substring(0, 27) + '...' : url;
-    }
-  };
 
   // Handle new URL - reset campaign state but preserve all URL histories
   // Handle new URL - reset to fresh state like first website visit
@@ -1011,7 +1123,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
 
     // IMMEDIATELY reset UI when any new facts data comes in (GO button clicked)
-    if (chunkFactsData) {
+    // BUT: Don't reset if we're currently restoring settings from a previous campaign
+    if (chunkFactsData && !isRestoringSettingsRef.current) {
       // Reset UI to fresh state immediately
       setCampaignResponse(null);
       setShowUndoRedo(false);
@@ -1048,7 +1161,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
             delete cleanedHistory[sessionUrl];
           });
 
-          setUrlCampaignHistory(cleanedHistory);
+          if (setUrlCampaignHistory) {
+            setUrlCampaignHistory(cleanedHistory);
+          }
         }
 
         // Note: currentUrl is now a prop, so we can't set it directly
@@ -1076,21 +1191,6 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   // URL is now managed by App.tsx and passed as a prop - no complex synchronization needed!
 
 
-
-  // Close dropdown when clicking outside
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (showUrlDropdown && !target.closest('.url-dropdown-container-left')) {
-        setShowUrlDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUrlDropdown]);
 
   // Display logic for facts based on active tab
   const getCurrentFacts = () => {
@@ -1358,66 +1458,18 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
         <div className="create-campaign">
           <div className="campaign-section-layout">
-            {/* URL Dropdown positioned on the far left - always render container for layout */}
-            <div className="url-dropdown-container-left">
-              {(() => {
-                const allUrls = getAllUrls();
-                const totalHistoryUrls = allUrls.length;
-                const shouldShow = totalHistoryUrls > 1; // Show dropdown when there are multiple URLs in history (even if some filtered)
-
-                return shouldShow ? (
-                  <>
-                    <button
-                      className={`url-dropdown-btn ${showUrlDropdown ? 'open' : ''}`}
-                      onClick={() => {
-                        setShowUrlDropdown(!showUrlDropdown);
-                      }}
-                      title="Switch to previous URL"
-
-                    >
-                      <span className="dropdown-text">All URLs</span>
-                      <span className="dropdown-icon">🌐</span>
-                      <span className="dropdown-arrow">▼</span>
-                    </button>
-
-                    {showUrlDropdown && (
-                      <div className="url-dropdown-menu">
-                        {getAllUrls().map((url) => (
-                          <div
-                            key={url}
-                            className={`url-dropdown-item ${url === currentUrl ? 'active' : ''}`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleUrlSwitch(url);
-                            }}
-                            title={url}
-                          >
-                            <span className="url-text">{formatUrlForDisplay(url)}</span>
-                            <span className="url-campaigns">
-                              {urlCampaignHistory[url]?.history.length || 0} campaigns
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : null;
-              })()}
-            </div>
-
             <div className="campaign-buttons-container">
               <button
-              className={`create-btn ${!isCreateCampaignEnabled() ? 'disabled' : ''} ${(() => {
-                const isInStoryMode = currentStoryId !== null && currentStoryId !== undefined;
-                const data = isInStoryMode ? getCurrentStoryData() : getCurrentUrlData();
-                const isNewSession = isInStoryMode ? isNewStorySession : isNewUrlSession;
-                const shouldSlideLeft = showUndoRedo && !isNewSession && data.history.length > 1;
-                return shouldSlideLeft ? 'slide-left' : '';
-              })()} ${getAllUrls().length > 1 ? 'with-dropdown' : ''}`}
-              onClick={handleCreateCampaign}
-              disabled={!isCreateCampaignEnabled() || isCreatingCampaign}
-            >
+                className={`create-btn ${!isCreateCampaignEnabled() ? 'disabled' : ''} ${(() => {
+                  const isInStoryMode = currentStoryId !== null && currentStoryId !== undefined;
+                  const data = isInStoryMode ? getCurrentStoryData() : getCurrentUrlData();
+                  const isNewSession = isInStoryMode ? isNewStorySession : isNewUrlSession;
+                  const shouldSlideLeft = showUndoRedo && !isNewSession && data.history.length > 1;
+                  return shouldSlideLeft ? 'slide-left' : '';
+                })()}`}
+                onClick={handleCreateCampaign}
+                disabled={!isCreateCampaignEnabled() || isCreatingCampaign}
+              >
               {isCreatingCampaign ? (
                 <div className="button-loading-content">
                   <div className="button-spinner"></div>

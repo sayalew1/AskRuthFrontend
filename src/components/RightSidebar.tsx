@@ -24,6 +24,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [campaignContent, setCampaignContent] = useState<any>(null);
 
+  // Clear RightSidebar state when props change
+  useEffect(() => {
+    // Props updated
+  }, [variations, campaignData]);
+
   // Clear RightSidebar state when campaignData becomes null (new story clicked)
   useEffect(() => {
     if (!campaignData) {
@@ -58,17 +63,9 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
         setSelectedSocialChannel(defaultChannel);
         setSelectedGoal(defaultGoal);
         setSelectedVoice(defaultVoice);
-        console.log('Campaign content loaded:', { defaultChannel, defaultGoal, defaultVoice, content });
         setCampaignContent(content);
       } else {
-        console.warn('Default campaign content not found:', {
-          defaultChannel,
-          defaultGoal,
-          defaultVoice,
-          availableChannels: Object.keys(charismatic),
-          availableGoals: charismatic[defaultChannel] ? Object.keys(charismatic[defaultChannel]) : [],
-          availableVoices: charismatic[defaultChannel]?.[defaultGoal] ? Object.keys(charismatic[defaultChannel][defaultGoal]) : []
-        });
+        // Default campaign content not found
       }
     }
   }, [campaignData]);
@@ -80,14 +77,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
     if (selectedButtons && campaignData?.matrix?.charismatic) {
       const charismatic = campaignData.matrix.charismatic;
       const { channelCode, goalSlug, voiceSlug } = selectedButtons;
-
-      console.log('Looking up campaign data:', {
-        channel: channelCode,
-        goal: goalSlug,
-        voice: voiceSlug,
-        availableChannels: Object.keys(charismatic),
-        availableGoals: channelCode ? Object.keys(charismatic[channelCode] || {}) : [],
-      });
 
       // Check if this combination exists in the campaign data
       const content = charismatic[channelCode]?.[goalSlug]?.[voiceSlug];
@@ -107,14 +96,6 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
         });
       } else {
         // If combination doesn't exist, show default values
-        console.warn('Combination not found in campaign data:', {
-          channelCode,
-          goalSlug,
-          voiceSlug,
-          availableChannels: Object.keys(charismatic),
-          availableGoals: charismatic[channelCode] ? Object.keys(charismatic[channelCode]) : [],
-          availableVoices: charismatic[channelCode]?.[goalSlug] ? Object.keys(charismatic[channelCode][goalSlug]) : []
-        });
         setCampaignContent(null);
         setSectionIndices({
           opening_paragraph: 0,

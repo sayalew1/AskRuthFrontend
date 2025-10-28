@@ -102,6 +102,29 @@ function App() {
   const [currentFactsForCampaign, setCurrentFactsForCampaign] = useState<{ url_facts: string[]; rag_facts: { facts: string[] } } | null>(null);
   const [currentStoryId, setCurrentStoryId] = useState<number | null>(null);
 
+  // Track campaign history per URL (lifted from MainContent)
+  const [urlCampaignHistory, setUrlCampaignHistory] = useState<{
+    [url: string]: {
+      history: any[];
+      currentIndex: number;
+      lastSettings: {
+        socialChannel: number;
+        actionButton: number;
+        characteristic: number;
+      } | null;
+    }
+  }>({});
+
+  // Track URL data (facts, related facts, sources) per URL
+  const [urlDataCache, setUrlDataCache] = useState<{
+    [url: string]: {
+      storyFacts: string[];
+      chunkFacts: string[];
+      chunkFactsData: any;
+      chunkFactsReady: boolean;
+    }
+  }>({});
+
   // Helper function to create facts object for campaign generation and cache it
   const createAndCacheFactsForCampaign = (storyId: number, storyData: StoryData) => {
     const url_facts = storyData.facts?.map(fact => fact.text) || [];
@@ -122,7 +145,7 @@ function App() {
     return factsObj;
   };
 
-  const handleFactsExtracted = (response: ApiResponse) => {
+  const handleFactsExtracted = (response: ApiResponse & { url?: string }) => {
     if (response.ok && response.facts) {
       if (response.facts.length > 0) {
         setStoryFacts(response.facts);
@@ -131,6 +154,20 @@ function App() {
       setChunkFacts([]);
       setChunkFactsReady(false);
       setChunkFactsData(null);
+
+      // Cache URL data when facts are extracted - use URL from response
+      const urlToCache = response.url || currentUrl;
+      if (urlToCache) {
+        setUrlDataCache(prev => ({
+          ...prev,
+          [urlToCache]: {
+            storyFacts: response.facts || [],
+            chunkFacts: [],
+            chunkFactsData: null,
+            chunkFactsReady: false
+          }
+        }));
+      }
     }
   };
 
@@ -138,6 +175,21 @@ function App() {
     setChunkFacts(facts);
     setChunkFactsReady(true);
     setChunkFactsData(fullData);
+
+    // Update URL data cache with chunk facts - use URL from fullData
+    const urlToCache = fullData?.url || fullData?.original_url || currentUrl;
+    const storyFactsToCache = fullData?.storyFacts || storyFacts;
+    if (urlToCache) {
+      setUrlDataCache(prev => ({
+        ...prev,
+        [urlToCache]: {
+          storyFacts: storyFactsToCache,
+          chunkFacts: facts,
+          chunkFactsData: fullData,
+          chunkFactsReady: true
+        }
+      }));
+    }
   };
 
   const handleVariationsGenerated = (variationsData: any) => {
@@ -174,11 +226,34 @@ function App() {
     setStoryData(null);
     setStoryTitle('');
     setCampaignData(null);
+    // Clear current story ID to switch from story mode to URL mode
+    setCurrentStoryId(null);
+    // Clear story facts to reset the middle component
+    setStoryFacts([]);
+    // Clear chunk facts and related data
+    setChunkFacts([]);
+    setChunkFactsReady(false);
   };
 
   const handleUrlSwitch = (url: string) => {
     setCurrentUrl(url);
     setSearchText(url); // Update search bar when URL is switched
+
+    // Clear story context to switch from story mode to URL mode
+    setCurrentStoryId(null);
+    setStoryData(null);
+    setStoryTitle('');
+    setCampaignData(null);
+    setVariations(null);
+
+    // Restore URL data from cache
+    const cachedUrlData = urlDataCache[url];
+    if (cachedUrlData) {
+      setStoryFacts(cachedUrlData.storyFacts);
+      setChunkFacts(cachedUrlData.chunkFacts);
+      setChunkFactsData(cachedUrlData.chunkFactsData);
+      setChunkFactsReady(cachedUrlData.chunkFactsReady);
+    }
   };
 
   const handleSearchTextChange = (text: string) => {
@@ -256,6 +331,9 @@ function App() {
   const handleStoryCardClick = async (storyId: number, title?: string) => {
     setIsLoadingStory(true);
     setCurrentStoryId(storyId);
+
+    // Clear search bar when story is clicked
+    setSearchText('');
 
     // Check if data is already cached
     const isStoryDataCached = storyDataCache[storyId] !== undefined;
@@ -383,6 +461,10 @@ function App() {
         searchText={searchText}
         onSearchTextChange={handleSearchTextChange}
         onGoButtonClicked={handleGoButtonClicked}
+        urlCampaignHistory={urlCampaignHistory}
+        currentUrl={currentUrl}
+        onUrlSwitch={handleUrlSwitch}
+        urlDataCache={urlDataCache}
       />
       <div className="app-body">
         <Sidebar onStoryCardClick={handleStoryCardClick} resetSelection={goButtonClicked} />
@@ -393,7 +475,6 @@ function App() {
           chunkFactsData={chunkFactsData}
           onVariationsGenerated={handleVariationsGenerated}
           currentUrl={currentUrl}
-          onUrlSwitch={handleUrlSwitch}
           goButtonClicked={goButtonClicked}
           storyData={storyData}
           storyTitle={storyTitle}
@@ -405,6 +486,8 @@ function App() {
           campaignData={campaignData}
           currentFactsForCampaign={currentFactsForCampaign}
           currentStoryId={currentStoryId}
+          urlCampaignHistory={urlCampaignHistory}
+          setUrlCampaignHistory={setUrlCampaignHistory}
         />
         <RightSidebar
           variations={variations}
