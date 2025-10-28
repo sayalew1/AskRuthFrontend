@@ -428,6 +428,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   const handleSocialChannelClick = (displayIndex: number) => {
     setActiveSocialChannel(displayIndex);
+    setCampaignResponse(null); // Clear campaign response when button changes
     const channelCode = socialChannels[displayIndex]?.code;
     const goalSlug = actionButtons[activeActionButton]?.slug;
     const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
@@ -438,6 +439,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   const handleActionButtonClick = (displayIndex: number) => {
     setActiveActionButton(displayIndex);
+    setCampaignResponse(null); // Clear campaign response when button changes
     const channelCode = socialChannels[activeSocialChannel]?.code;
     const goalSlug = actionButtons[displayIndex]?.slug;
     const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
@@ -448,6 +450,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   const handleCharacteristicClick = (index: number) => {
     setActiveCharacteristic(index);
+    setCampaignResponse(null); // Clear campaign response when button changes
     const channelCode = socialChannels[activeSocialChannel]?.code;
     const goalSlug = actionButtons[activeActionButton]?.slug;
     const voiceSlug = characteristicTags[index]?.slug;
@@ -580,6 +583,28 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const canRedo = () => {
     const urlData = getCurrentUrlData();
     return urlData.currentIndex < urlData.history.length - 1;
+  };
+
+  // Count campaigns for the current combination (channel + goal + voice)
+  const getCampaignsForCurrentCombination = () => {
+    const urlData = getCurrentUrlData();
+    const currentSettings = {
+      socialChannel: activeSocialChannel,
+      actionButton: activeActionButton,
+      characteristic: activeCharacteristic
+    };
+
+    // Filter history entries that match the current combination
+    const matchingCampaigns = urlData.history.filter(entry => {
+      const entrySettings = entry.settings;
+      return (
+        entrySettings.socialChannel === currentSettings.socialChannel &&
+        entrySettings.actionButton === currentSettings.actionButton &&
+        entrySettings.characteristic === currentSettings.characteristic
+      );
+    });
+
+    return matchingCampaigns;
   };
 
   // Handle switching to a different URL from dropdown
@@ -1125,9 +1150,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               // Only show undo/redo buttons if:
               // 1. showUndoRedo is true
               // 2. NOT in a new URL session
-              // 3. Current URL has multiple campaigns
-              const urlData = getCurrentUrlData();
-              const shouldShowButtons = showUndoRedo && !isNewUrlSession && urlData.history.length > 1;
+              // 3. Current combination (channel + goal + voice) has multiple campaigns
+              const campaignsForCombination = getCampaignsForCurrentCombination();
+              const shouldShowButtons = showUndoRedo && !isNewUrlSession && campaignsForCombination.length > 1;
               return shouldShowButtons;
             })() && (
               <div className="undo-redo-buttons">
