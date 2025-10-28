@@ -63,9 +63,10 @@ interface MainContentProps {
   onStoryTabActivated?: () => void;
   onButtonSelectionChange?: (channelCode: string, goalSlug: string, voiceSlug: string) => void;
   campaignData?: any;
+  currentFactsForCampaign?: { url_facts: string[]; rag_facts: { facts: string[] } } | null;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange, campaignData }) => {
+const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunkFactsReady, chunkFactsData, onVariationsGenerated, currentUrl, onUrlSwitch, goButtonClicked, storyData, storyTitle, campaignFilters, isLoadingStory, shouldActivateStoryTab, onStoryTabActivated, onButtonSelectionChange, campaignData, currentFactsForCampaign }) => {
   const mainContentRef = useRef<HTMLDivElement>(null);
   const tabs = ['Story Facts', 'Related Facts & Data', 'Sources'];
   const [activeTab, setActiveTab] = React.useState(-1); // Start with no tab selected
@@ -157,6 +158,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     }
   }, [chunkFacts.length]);
 
+
+
   // Set default selections based on API chips data
   useEffect(() => {
     if (storyData?.chips?.selected) {
@@ -170,9 +173,10 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         }
       }
 
-      // Set default goal selection (use first selected goal or 0)
-      if (goals && goals.length > 0 && storyData.chips.goals) {
-        const goalIndex = storyData.chips.goals.findIndex(g => g.id === goals[0]);
+      // Set default goal selection (use reordered campaignFilters.goals if available, otherwise use storyData.chips.goals)
+      if (goals && goals.length > 0) {
+        const goalsArray = campaignFilters?.goals || storyData.chips.goals;
+        const goalIndex = goalsArray.findIndex((g: any) => g.id === goals[0]);
         if (goalIndex !== -1) {
           setActiveActionButton(goalIndex);
         }
@@ -191,23 +195,19 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       setActiveActionButton(0);
       setActiveCharacteristic(0);
     }
-  }, [storyData]);
+  }, [storyData, campaignFilters]);
 
   // Default buttons (fallback when no chips data available)
   const defaultSocialChannels = [
     { name: 'Plain Text', active: true, description: null },
-    { name: 'Bluesky', active: false, description: 'Coming Soon' },
-    { name: 'Email', active: false, description: 'Coming Soon' },
-    { name: 'Facebook', active: false, description: 'Coming Soon' },
     { name: 'Instagram', active: false, description: 'Coming Soon' },
-    { name: 'TikTok', active: false, description: 'Coming Soon' },
-    { name: 'Twitter/X', active: false, description: 'Coming Soon' },
-    { name: 'Website', active: false, description: 'Coming Soon' }
+    { name: 'Facebook', active: false, description: 'Coming Soon' },
+    { name: 'Bluesky', active: false, description: 'Coming Soon' }
   ];
 
   const defaultActionButtons = [
-    { name: 'Donate', color: '#059669', description: "Support NPO's or crowdfund your own Cause" },
     { name: 'Spread the Word', color: '#0891b2', description: 'Get the word out on issues that you care about' },
+    { name: 'Donate', color: '#059669', description: "Support NPO's or crowdfund your own Cause" },
     { name: 'Go to a Protest', color: '#7c3aed', description: 'Coming Soon' },
     { name: 'Contact Your Rep', color: '#dc2626', description: 'Coming Soon' },
     { name: 'Volunteer', color: '#f59e0b', description: 'Coming Soon' }
@@ -282,20 +282,6 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       return { ...goal, description };
     });
 
-    // Sort to put "Donate" first and "Spread the Word" second if they exist
-    const donateIndex = goals.findIndex((g: any) => g.name === 'Donate');
-    const spreadIndex = goals.findIndex((g: any) => g.name === 'Spread the Word');
-
-    if (donateIndex > 0) {
-      const donate = goals.splice(donateIndex, 1)[0];
-      goals.unshift(donate);
-    }
-
-    if (spreadIndex > 1 || (spreadIndex > 0 && donateIndex === 0)) {
-      const spread = goals.splice(spreadIndex, 1)[0];
-      goals.splice(1, 0, spread);
-    }
-
     return goals;
   }, [campaignFilters?.goals]);
 
@@ -309,29 +295,19 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     }));
 
   const handleCreateCampaign = async () => {
-    if (!chunkFactsData || !isCreateCampaignEnabled()) return;
+    if (!isCreateCampaignEnabled()) return;
 
     setIsCreatingCampaign(true);
     try {
-      // Build maps from campaign filters
-      const socialChannelMap = campaignFilters?.channels?.map((ch: any) => ch.code) || ['plain_text', 'bluesky', 'email', 'facebook', 'instagram', 'tiktok', 'twitter', 'website'];
-      const goalMap = campaignFilters?.goals?.map((g: any) => g.slug) || ['contact', 'donate', 'protest', 'spread', 'volunteer'];
-      const voiceMap = campaignFilters?.voices?.map((v: any) => v.slug) || [
-        'charismatic',
-        'diplomatic',
-        'empathetic',
-        'empowered',
-        'logical',
-        'passionate',
-        'strategic'
-      ];
+      // Get the selected voice and goal slugs
+      const selectedVoiceSlug = characteristicTags[activeCharacteristic]?.slug;
+      const selectedGoalSlug = actionButtons[activeActionButton]?.slug;
 
+      // Build request body using currentFactsForCampaign
       const requestBody = {
-        url_facts: chunkFactsData.url_facts || storyFacts,
-        rag_facts: chunkFactsData.chunk_facts?.facts || chunkFacts,
-        personality_type: voiceMap[activeCharacteristic],
-        goal: goalMap[activeActionButton],
-        by_cause: chunkFactsData.chunk_facts?.by_cause || {}
+        ...currentFactsForCampaign,
+        personality_type: selectedVoiceSlug,
+        goal: selectedGoalSlug
       };
 
       const response = await fetch('/api/generate-from-facts/', {
@@ -368,8 +344,24 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         let newIndex;
 
         if (isNewUrlSession) {
-          updatedHistory = [newHistoryEntry]; // Start fresh with just this entry
-          newIndex = 0; // First entry (1/1)
+          // First time clicking "Create Campaign" or "Refresh" for this URL
+          // Add the initial cached campaign data first, then the new generated campaign
+          const initialHistoryEntry = {
+            response: {
+              ok: true,
+              variations: null,
+              matrix: campaignData?.matrix // Store the campaign matrix from cached data
+            },
+            timestamp: new Date().toISOString(),
+            settings: {
+              socialChannel: activeSocialChannel,
+              actionButton: activeActionButton,
+              characteristic: activeCharacteristic
+            }
+          };
+
+          updatedHistory = [initialHistoryEntry, newHistoryEntry]; // Start with cached campaign, then new generated campaign
+          newIndex = 1; // Point to the new generated campaign (second entry)
           setIsNewUrlSession(false); // Mark session as no longer new
         } else {
           // Continue existing history for this URL
@@ -414,20 +406,24 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   // Check if Create Campaign button should be enabled
   const isCreateCampaignEnabled = () => {
+    // 1. Story facts must exist (from URL or from clicking a story)
     const hasStoryFacts = storyFacts.length > 0;
-    const hasChunkFacts = chunkFactsReady && chunkFacts.length > 0;
 
-    // Social channel must be selected AND must be "Plain Text"
+    // 2. Related facts must exist (from URL or from clicking a story)
+    const hasRelatedFacts = chunkFactsReady && chunkFacts.length > 0;
+
+    // 3. Social media button "Plain Text" must be selected
     const isPlainTextSelected = activeSocialChannel !== null && activeSocialChannel >= 0 &&
                                 socialChannels[activeSocialChannel]?.name === 'Plain Text';
 
-    // Goal must be selected AND must NOT be "Volunteer"
-    const isValidGoalSelected = activeActionButton !== null && activeActionButton >= 0 &&
-                                actionButtons[activeActionButton]?.name !== 'Volunteer';
+    // 4. Goal button "Spread the Word" must be selected
+    const isSpreadTheWordSelected = activeActionButton !== null && activeActionButton >= 0 &&
+                                    actionButtons[activeActionButton]?.name === 'Spread the Word';
 
-    const hasVoice = activeCharacteristic !== null && activeCharacteristic >= 0;
+    // 5. Any voice button must be selected
+    const hasVoiceSelected = activeCharacteristic !== null && activeCharacteristic >= 0;
 
-    return hasStoryFacts && hasChunkFacts && isPlainTextSelected && isValidGoalSelected && hasVoice;
+    return hasStoryFacts && hasRelatedFacts && isPlainTextSelected && isSpreadTheWordSelected && hasVoiceSelected;
   };
 
   const handleSocialChannelClick = (displayIndex: number) => {
@@ -501,20 +497,15 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     });
   };
 
-  // Check if we should show Refresh button (only for current active session)
+  // Check if we should show Refresh button
   const isRefreshMode = () => {
-    // Only show "Refresh" if:
-    // 1. User has created a campaign in current session (campaignResponse exists)
-    // 2. AND we're not in a new URL session (facts are ready for current URL)
-    // 3. AND the current URL has campaign history
-    const urlData = getCurrentUrlData();
-    const hasCurrentCampaign = campaignResponse !== null;
-    const hasUrlHistory = urlData.history.length > 0;
-    const factsAreReady = chunkFactsReady;
+    // Show "Refresh" if:
+    // 1. Campaign data exists (from story API) - this means there's already campaign content showing in the right sidebar
+    // 2. OR campaign response exists (from generated campaign via POST request)
+    const hasCampaignData = campaignData !== null && campaignData !== undefined;
+    const hasCampaignResponse = campaignResponse !== null && campaignResponse !== undefined;
 
-    const shouldShowRefresh = hasCurrentCampaign && !isNewUrlSession && hasUrlHistory && factsAreReady;
-
-    return shouldShowRefresh;
+    return hasCampaignData || hasCampaignResponse;
   };
 
   // Undo function - go back in history for current URL
@@ -534,8 +525,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         setActiveCharacteristic(historyEntry.settings.characteristic);
       }
 
-      if (onVariationsGenerated) {
-        onVariationsGenerated(historyEntry.response.variations);
+      // If this entry has variations, show them; otherwise show cached campaign data
+      if (historyEntry.response.variations) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(historyEntry.response.variations);
+        }
+      } else if (historyEntry.response.matrix) {
+        // This is the initial cached campaign data, restore it
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null); // Clear variations
+        }
       }
     }
   };
@@ -557,8 +556,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         setActiveCharacteristic(historyEntry.settings.characteristic);
       }
 
-      if (onVariationsGenerated) {
-        onVariationsGenerated(historyEntry.response.variations);
+      // If this entry has variations, show them; otherwise show cached campaign data
+      if (historyEntry.response.variations) {
+        if (onVariationsGenerated) {
+          onVariationsGenerated(historyEntry.response.variations);
+        }
+      } else if (historyEntry.response.matrix) {
+        // This is the initial cached campaign data, restore it
+        if (onVariationsGenerated) {
+          onVariationsGenerated(null); // Clear variations
+        }
       }
     }
   };
@@ -1111,6 +1118,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
                 })()
               )}
             </button>
+
+
 
             {(() => {
               // Only show undo/redo buttons if:

@@ -44,12 +44,12 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, campaignData, c
     }
   }, [campaignData]);
 
-  // Initialize campaign data with default values (text + donate + charismatic)
+  // Initialize campaign data with default values (text + spread-the-word + charismatic)
   useEffect(() => {
     if (campaignData?.matrix?.charismatic) {
       const charismatic = campaignData.matrix.charismatic;
       const defaultChannel = 'text';
-      const defaultGoal = 'donate';
+      const defaultGoal = 'spread-the-word';
       const defaultVoice = 'charismatic';
 
       // Set the default campaign content

@@ -96,6 +96,31 @@ function App() {
   const [isLoadingStory, setIsLoadingStory] = useState<boolean>(false);
   const [shouldActivateStoryTab, setShouldActivateStoryTab] = useState<boolean>(false);
   const [selectedButtons, setSelectedButtons] = useState<{ channelCode: string; goalSlug: string; voiceSlug: string } | null>(null);
+  const [campaignDataCache, setCampaignDataCache] = useState<{ [storyId: number]: CampaignData }>({});
+  const [storyDataCache, setStoryDataCache] = useState<{ [storyId: number]: StoryData }>({});
+  const [factsForCampaignCache, setFactsForCampaignCache] = useState<{ [storyId: number]: { url_facts: string[]; rag_facts: { facts: string[] } } }>({});
+  const [currentFactsForCampaign, setCurrentFactsForCampaign] = useState<{ url_facts: string[]; rag_facts: { facts: string[] } } | null>(null);
+  const [currentStoryId, setCurrentStoryId] = useState<number | null>(null);
+
+  // Helper function to create facts object for campaign generation and cache it
+  const createAndCacheFactsForCampaign = (storyId: number, storyData: StoryData) => {
+    const url_facts = storyData.facts?.map(fact => fact.text) || [];
+    const rag_facts = {
+      facts: storyData.related_facts?.map(fact => fact.text) || []
+    };
+    const factsObj = { url_facts, rag_facts };
+
+    // Cache the facts for this story
+    setFactsForCampaignCache(prev => ({
+      ...prev,
+      [storyId]: factsObj
+    }));
+
+    // Set as current facts
+    setCurrentFactsForCampaign(factsObj);
+
+    return factsObj;
+  };
 
   const handleFactsExtracted = (response: ApiResponse) => {
     if (response.ok && response.facts) {
@@ -116,11 +141,28 @@ function App() {
   };
 
   const handleVariationsGenerated = (variationsData: any) => {
-    setVariations(variationsData);
+    if (variationsData === null) {
+      // When variations are null, restore the cached campaign data
+      if (currentStoryId !== null && campaignDataCache[currentStoryId]) {
+        setCampaignData(campaignDataCache[currentStoryId]);
+      }
+      setVariations(null);
+    } else {
+      // When variations are generated, clear campaignData so RightSidebar shows the generated variations
+      setVariations(variationsData);
+      setCampaignData(null);
+    }
   };
 
   const handleButtonSelectionChange = (channelCode: string, goalSlug: string, voiceSlug: string) => {
     setSelectedButtons({ channelCode, goalSlug, voiceSlug });
+
+    // Restore cached campaign data when button selection changes
+    // This allows the RightSidebar to show the cached campaign data for the selected combination
+    if (currentStoryId !== null && campaignDataCache[currentStoryId]) {
+      setCampaignData(campaignDataCache[currentStoryId]);
+      setVariations(null); // Clear variations so cached campaign data is shown
+    }
   };
 
   const handleUrlChanged = (url: string) => {
@@ -156,6 +198,49 @@ function App() {
         const response = await fetch('/api/v2/askruth/campaign-filters/');
         if (response.ok) {
           const data = await response.json();
+
+          // Filter channels to only show: text (Plain Text), instagram, facebook, bluesky in that order
+          if (data.channels) {
+            const allowedChannels = ['text', 'instagram', 'facebook', 'bluesky'];
+            const filteredChannels = allowedChannels
+              .map(name => data.channels.find((ch: any) => ch.name.toLowerCase() === name))
+              .filter((ch: any) => ch !== undefined);
+            data.channels = filteredChannels;
+          }
+
+          // Reorder goals to put "spread-the-word" first
+          if (data.goals && Array.isArray(data.goals)) {
+            const spreadTheWordGoal = data.goals.find((g: any) => g.slug === 'spread-the-word');
+            if (spreadTheWordGoal) {
+              const otherGoals = data.goals.filter((g: any) => g.slug !== 'spread-the-word');
+              data.goals = [spreadTheWordGoal, ...otherGoals];
+            }
+          }
+
+          // Add code property to channels for easy access
+          if (data.channels) {
+            data.channels = data.channels.map((ch: any) => ({
+              ...ch,
+              code: ch.code
+            }));
+          }
+
+          // Add slug property to goals for easy access
+          if (data.goals) {
+            data.goals = data.goals.map((g: any) => ({
+              ...g,
+              slug: g.slug
+            }));
+          }
+
+          // Add slug property to voices for easy access
+          if (data.voices) {
+            data.voices = data.voices.map((v: any) => ({
+              ...v,
+              slug: v.slug
+            }));
+          }
+
           setCampaignFilters(data);
         } else {
           console.error('Failed to fetch campaign filters:', response.statusText);
@@ -170,6 +255,11 @@ function App() {
 
   const handleStoryCardClick = async (storyId: number, title?: string) => {
     setIsLoadingStory(true);
+    setCurrentStoryId(storyId);
+
+    // Check if data is already cached
+    const isStoryDataCached = storyDataCache[storyId] !== undefined;
+    const isCampaignDataCached = campaignDataCache[storyId] !== undefined;
 
     // Clear all data immediately before fetching new story
     setStoryData(null);
@@ -187,11 +277,24 @@ function App() {
         setStoryTitle(title);
       }
 
-      // Fetch story evidence data from v2 API
-      const response = await fetch(`/api/v2/askruth/story/${storyId}/evidence/`);
-      if (response.ok) {
-        const data: StoryData = await response.json();
+      // Use cached story evidence data if available, otherwise fetch from API
+      if (isStoryDataCached) {
+        // Use cached story data - no API call
+        const data = storyDataCache[storyId];
         setStoryData(data);
+
+        // Extract story facts text
+        if (data.facts && data.facts.length > 0) {
+          const factsText = data.facts.map(fact => fact.text);
+          setStoryFacts(factsText);
+        }
+
+        // Use cached facts if available, otherwise create and cache them
+        if (factsForCampaignCache[storyId]) {
+          setCurrentFactsForCampaign(factsForCampaignCache[storyId]);
+        } else {
+          createAndCacheFactsForCampaign(storyId, data);
+        }
 
         // Set chunkFactsReady to true if related_facts exist
         if (data.related_facts && data.related_facts.length > 0) {
@@ -206,16 +309,62 @@ function App() {
         // Trigger Story Facts tab activation
         setShouldActivateStoryTab(true);
       } else {
-        console.error('Failed to fetch story data:', response.statusText);
+        // Fetch story evidence data from v2 API
+        const response = await fetch(`/api/v2/askruth/story/${storyId}/evidence/`);
+        if (response.ok) {
+          const data: StoryData = await response.json();
+          setStoryData(data);
+
+          // Cache the story data
+          setStoryDataCache(prev => ({
+            ...prev,
+            [storyId]: data
+          }));
+
+          // Extract story facts text
+          if (data.facts && data.facts.length > 0) {
+            const factsText = data.facts.map(fact => fact.text);
+            setStoryFacts(factsText);
+          }
+
+          // Create and cache facts object for campaign generation
+          createAndCacheFactsForCampaign(storyId, data);
+
+          // Set chunkFactsReady to true if related_facts exist
+          if (data.related_facts && data.related_facts.length > 0) {
+            setChunkFactsReady(true);
+            // Extract related facts text for chunkFacts
+            const relatedFactsText = data.related_facts.map(fact => fact.text);
+            setChunkFacts(relatedFactsText);
+          } else {
+            setChunkFactsReady(false);
+          }
+
+          // Trigger Story Facts tab activation
+          setShouldActivateStoryTab(true);
+        } else {
+          console.error('Failed to fetch story data:', response.statusText);
+        }
       }
 
-      // Fetch campaign data
-      const campaignResponse = await fetch(`/api/v2/askruth/story/${storyId}/campaign/`);
-      if (campaignResponse.ok) {
-        const campaignDataResponse: CampaignData = await campaignResponse.json();
-        setCampaignData(campaignDataResponse);
+      // Use cached campaign data if available, otherwise fetch from API
+      if (isCampaignDataCached) {
+        // Use cached campaign data - no API call
+        setCampaignData(campaignDataCache[storyId]);
       } else {
-        console.error('Failed to fetch campaign data:', campaignResponse.statusText);
+        // Fetch from API and cache it
+        const campaignResponse = await fetch(`/api/v2/askruth/story/${storyId}/campaign/`);
+        if (campaignResponse.ok) {
+          const campaignDataResponse: CampaignData = await campaignResponse.json();
+          setCampaignData(campaignDataResponse);
+          // Cache the campaign data
+          setCampaignDataCache(prev => ({
+            ...prev,
+            [storyId]: campaignDataResponse
+          }));
+        } else {
+          console.error('Failed to fetch campaign data:', campaignResponse.statusText);
+        }
       }
     } catch (error) {
       console.error('Error fetching story data:', error);
@@ -254,6 +403,7 @@ function App() {
           onStoryTabActivated={() => setShouldActivateStoryTab(false)}
           onButtonSelectionChange={handleButtonSelectionChange}
           campaignData={campaignData}
+          currentFactsForCampaign={currentFactsForCampaign}
         />
         <RightSidebar
           variations={variations}
