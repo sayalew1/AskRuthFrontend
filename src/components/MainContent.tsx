@@ -339,6 +339,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
         // Get current URL's data
         const urlData = getCurrentUrlData();
 
+        // Check if this is the first time generating a campaign for this combination
+        const isFirstForCombination = isFirstCampaignForCombination();
+
         // If this is a new URL session, start with fresh history (reset to 1/1)
         let updatedHistory;
         let newIndex;
@@ -363,8 +366,27 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           updatedHistory = [initialHistoryEntry, newHistoryEntry]; // Start with cached campaign, then new generated campaign
           newIndex = 1; // Point to the new generated campaign (second entry)
           setIsNewUrlSession(false); // Mark session as no longer new
+        } else if (isFirstForCombination) {
+          // First time generating a campaign for this specific combination
+          // Add the initial cached campaign data first, then the new generated campaign
+          const initialHistoryEntry = {
+            response: {
+              ok: true,
+              variations: null,
+              matrix: campaignData?.matrix // Store the campaign matrix from cached data
+            },
+            timestamp: new Date().toISOString(),
+            settings: {
+              socialChannel: activeSocialChannel,
+              actionButton: activeActionButton,
+              characteristic: activeCharacteristic
+            }
+          };
+
+          updatedHistory = [...urlData.history, initialHistoryEntry, newHistoryEntry];
+          newIndex = updatedHistory.length - 1; // Point to the new generated campaign
         } else {
-          // Continue existing history for this URL
+          // Continue existing history for this URL and combination
           updatedHistory = [...urlData.history, newHistoryEntry];
           newIndex = updatedHistory.length - 1;
         }
@@ -605,6 +627,12 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
     });
 
     return matchingCampaigns;
+  };
+
+  // Check if this is the first time generating a campaign for the current combination
+  const isFirstCampaignForCombination = () => {
+    const campaignsForCombination = getCampaignsForCurrentCombination();
+    return campaignsForCombination.length === 0;
   };
 
   // Handle switching to a different URL from dropdown
