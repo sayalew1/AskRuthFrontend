@@ -404,6 +404,7 @@ function App() {
           onButtonSelectionChange={handleButtonSelectionChange}
           campaignData={campaignData}
           currentFactsForCampaign={currentFactsForCampaign}
+          currentStoryId={currentStoryId}
         />
         <RightSidebar
           variations={variations}
