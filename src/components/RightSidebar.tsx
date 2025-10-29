@@ -3,9 +3,13 @@ import './RightSidebar.css';
 
 interface RightSidebarProps {
   variations?: any;
+  variationsForCombination?: { channelCode: string; goalSlug: string; voiceSlug: string } | null;
+  campaignData?: any;
+  campaignFilters?: any;
+  selectedButtons?: { channelCode: string; goalSlug: string; voiceSlug: string } | null;
 }
 
-const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
+const RightSidebar: React.FC<RightSidebarProps> = ({ variations, variationsForCombination, campaignData, campaignFilters, selectedButtons }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState('campaign'); // 'campaign' or 'other'
   const [customCampaignSuggestion, setCustomCampaignSuggestion] = useState(''); // For storing custom combined paragraph
@@ -16,6 +20,145 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
     emotional_appeal: 0,
     call_to_action: 0
   });
+  const [selectedSocialChannel, setSelectedSocialChannel] = useState<string | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [campaignContent, setCampaignContent] = useState<any>(null);
+
+  // Clear RightSidebar state when props change
+  useEffect(() => {
+    // Props updated
+  }, [variations, campaignData]);
+
+  // Clear RightSidebar state when campaignData becomes null (new story clicked)
+  useEffect(() => {
+    if (!campaignData) {
+      setCurrentImageIndex(0);
+      setSelectedOption('campaign');
+      setCustomCampaignSuggestion('');
+      setSectionIndices({
+        opening_paragraph: 0,
+        core_message: 0,
+        supporting_evidence: 0,
+        emotional_appeal: 0,
+        call_to_action: 0
+      });
+      setSelectedSocialChannel(null);
+      setSelectedGoal(null);
+      setSelectedVoice(null);
+      setCampaignContent(null);
+    }
+  }, [campaignData]);
+
+  // Initialize campaign content from variations (prioritize variations over campaignData)
+  useEffect(() => {
+    if (variations) {
+      // If we have variations (from generated campaigns), always show them
+      setCampaignContent(variations);
+    } else if (campaignData?.matrix?.general_audience) {
+      // Fall back to campaignData.matrix if no variations
+      const generalAudience = campaignData.matrix.general_audience;
+      const defaultChannel = 'text';
+      const defaultGoal = 'spread-the-word';
+      const defaultVoice = 'charismatic';
+
+      // Set the default campaign content
+      const content = generalAudience[defaultChannel]?.[defaultGoal]?.[defaultVoice];
+      if (content) {
+        setSelectedSocialChannel(defaultChannel);
+        setSelectedGoal(defaultGoal);
+        setSelectedVoice(defaultVoice);
+        setCampaignContent(content);
+      }
+    } else {
+      // No variations and no campaignData - clear content
+      setCampaignContent(null);
+    }
+  }, [variations, campaignData]);
+
+
+
+  // Update campaign content when button selections change
+  useEffect(() => {
+    if (selectedButtons) {
+      const { channelCode, goalSlug, voiceSlug } = selectedButtons;
+
+      // PRIORITY 1: If variations exist, show them (both URL and Story mode)
+      if (variations) {
+        // Check if the selected combination matches the combination the variations were generated for
+        if (variationsForCombination &&
+            variationsForCombination.channelCode === channelCode &&
+            variationsForCombination.goalSlug === goalSlug &&
+            variationsForCombination.voiceSlug === voiceSlug) {
+          // Show variations for this combination
+          setCampaignContent(variations);
+          setSelectedSocialChannel(channelCode);
+          setSelectedGoal(goalSlug);
+          setSelectedVoice(voiceSlug);
+          setSectionIndices({
+            opening_paragraph: 0,
+            core_message: 0,
+            supporting_evidence: 0,
+            emotional_appeal: 0,
+            call_to_action: 0
+          });
+        } else {
+          // Different combination selected, clear content
+          setCampaignContent(null);
+        }
+      }
+      // PRIORITY 2: If no variations, check campaignData.matrix (Story mode)
+      else if (campaignData?.matrix?.general_audience) {
+        const generalAudience = campaignData.matrix.general_audience;
+
+        // STORY MODE: Only show campaign data for "text" + "spread-the-word" combination
+        // For any other combination, show default text
+        if (channelCode === 'text' && goalSlug === 'spread-the-word') {
+          // Check if this combination exists in the campaign data
+          const content = generalAudience[channelCode]?.[goalSlug]?.[voiceSlug];
+
+          if (content) {
+            setSelectedSocialChannel(channelCode);
+            setSelectedGoal(goalSlug);
+            setSelectedVoice(voiceSlug);
+            setCampaignContent(content);
+            // Reset section indices when new content is loaded
+            setSectionIndices({
+              opening_paragraph: 0,
+              core_message: 0,
+              supporting_evidence: 0,
+              emotional_appeal: 0,
+              call_to_action: 0
+            });
+          } else {
+            // If combination doesn't exist, show default values
+            setCampaignContent(null);
+            setSectionIndices({
+              opening_paragraph: 0,
+              core_message: 0,
+              supporting_evidence: 0,
+              emotional_appeal: 0,
+              call_to_action: 0
+            });
+          }
+        } else {
+          // Different social media or goal selected - show default text
+          setCampaignContent(null);
+          setSectionIndices({
+            opening_paragraph: 0,
+            core_message: 0,
+            supporting_evidence: 0,
+            emotional_appeal: 0,
+            call_to_action: 0
+          });
+        }
+      }
+      // PRIORITY 3: No variations and no campaignData - clear content
+      else {
+        setCampaignContent(null);
+      }
+    }
+  }, [selectedButtons, campaignData, variations]);
 
   // Reset sidebar state when variations change (e.g., when switching URLs)
   useEffect(() => {
@@ -43,36 +186,63 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
   ];
 
   const handleSectionRefresh = (sectionKey: string) => {
-    if (!variations || !variations[sectionKey] || variations[sectionKey].length === 0) {
+    // Check campaign data first, then variations
+    const data = campaignContent?.[sectionKey] || variations?.[sectionKey];
+    if (!data || data.length === 0) {
       return;
     }
     setSectionIndices(prev => ({
       ...prev,
-      [sectionKey]: (prev[sectionKey] + 1) % variations[sectionKey].length
+      [sectionKey]: Math.floor(Math.random() * data.length)
     }));
   };
 
   const handleSectionPrevious = (sectionKey: string) => {
-    if (!variations || !variations[sectionKey] || variations[sectionKey].length === 0) {
+    // Check campaign data first, then variations
+    const data = campaignContent?.[sectionKey] || variations?.[sectionKey];
+    if (!data || data.length === 0) {
       return;
     }
     setSectionIndices(prev => ({
       ...prev,
-      [sectionKey]: (prev[sectionKey] - 1 + variations[sectionKey].length) % variations[sectionKey].length
+      [sectionKey]: (prev[sectionKey] - 1 + data.length) % data.length
     }));
   };
 
   const handleSectionNext = (sectionKey: string) => {
-    if (!variations || !variations[sectionKey] || variations[sectionKey].length === 0) {
+    // Check campaign data first, then variations
+    const data = campaignContent?.[sectionKey] || variations?.[sectionKey];
+    if (!data || data.length === 0) {
       return;
     }
     setSectionIndices(prev => ({
       ...prev,
-      [sectionKey]: (prev[sectionKey] + 1) % variations[sectionKey].length
+      [sectionKey]: (prev[sectionKey] + 1) % data.length
     }));
   };
 
   const getSectionContent = (sectionKey: string, defaultContent: string) => {
+    // First check campaign data
+    if (campaignContent && campaignContent[sectionKey] && campaignContent[sectionKey].length > 0) {
+      return campaignContent[sectionKey][sectionIndices[sectionKey]];
+    }
+    // In URL mode with variations, don't fall back to variations if campaignContent is null
+    // This ensures we only show variations for the matching combination
+    if (!campaignData?.matrix && variations) {
+      // URL mode - only use variations if they match the current combination
+      if (variationsForCombination &&
+          selectedButtons &&
+          variationsForCombination.channelCode === selectedButtons.channelCode &&
+          variationsForCombination.goalSlug === selectedButtons.goalSlug &&
+          variationsForCombination.voiceSlug === selectedButtons.voiceSlug) {
+        if (variations[sectionKey] && variations[sectionKey].length > 0) {
+          return variations[sectionKey][sectionIndices[sectionKey]];
+        }
+      }
+      // If combinations don't match, return default content
+      return defaultContent;
+    }
+    // In story mode, fall back to variations
     if (variations && variations[sectionKey] && variations[sectionKey].length > 0) {
       return variations[sectionKey][sectionIndices[sectionKey]];
     }
@@ -85,7 +255,63 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
       return customCampaignSuggestion;
     }
 
-    // Otherwise, use the default first elements from variations
+    // If campaign data is available, use that
+    if (campaignContent) {
+      const sections = [
+        'opening_paragraph',
+        'core_message',
+        'supporting_evidence',
+        'emotional_appeal',
+        'call_to_action'
+      ];
+
+      const combinedText = sections
+        .map(section => {
+          if (campaignContent[section] && campaignContent[section].length > 0) {
+            return campaignContent[section][0]; // Get first element from each section
+          }
+          return '';
+        })
+        .filter(text => text.trim() !== '') // Remove empty sections
+        .join(' '); // Join with spaces to form one paragraph
+
+      if (combinedText) {
+        return combinedText;
+      }
+    }
+
+    // In URL mode with variations, only use variations if they match the current combination
+    if (!campaignData?.matrix && variations) {
+      if (variationsForCombination &&
+          selectedButtons &&
+          variationsForCombination.channelCode === selectedButtons.channelCode &&
+          variationsForCombination.goalSlug === selectedButtons.goalSlug &&
+          variationsForCombination.voiceSlug === selectedButtons.voiceSlug) {
+        const sections = [
+          'opening_paragraph',
+          'core_message',
+          'supporting_evidence',
+          'emotional_appeal',
+          'call_to_action'
+        ];
+
+        const combinedText = sections
+          .map(section => {
+            if (variations[section] && variations[section].length > 0) {
+              return variations[section][0]; // Get first element from each section
+            }
+            return '';
+          })
+          .filter(text => text.trim() !== '') // Remove empty sections
+          .join(' '); // Join with spaces to form one paragraph
+
+        return combinedText || "Campaign suggestions will appear here after creating a campaign.";
+      }
+      // If combinations don't match, show default message
+      return "No campaign suggestions available. Please create a campaign first.";
+    }
+
+    // In story mode, use variations as fallback
     if (!variations) {
       return "No campaign suggestions available. Please create a campaign first.";
     }
@@ -200,7 +426,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
                 </div>
               </div>
               <p className="section-content">
-                {getSectionContent('opening_paragraph', 'Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec velit neque, auctor sit amet aliquam vel, ullamcorper sit amet ligula. 📖')}
+                {getSectionContent('opening_paragraph', 'Please create a campaign to view Opening Paragraph')}
               </p>
             </div>
 
@@ -213,7 +439,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
                 </div>
               </div>
               <p className="section-content">
-                {getSectionContent('core_message', 'Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero, sit amet adipiscing sem neque sed ipsum. ❤️')}
+                {getSectionContent('core_message', 'Please create a campaign to view Core Message')}
               </p>
             </div>
 
@@ -226,7 +452,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
                 </div>
               </div>
               <p className="section-content">
-                {getSectionContent('supporting_evidence', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes. 😊')}
+                {getSectionContent('supporting_evidence', 'Please create a campaign to view Supporting Evidence')}
               </p>
             </div>
 
@@ -239,7 +465,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
                 </div>
               </div>
               <p className="section-content">
-                {getSectionContent('emotional_appeal', 'Maecenas nec odio et ante tincidunt tempus. Donec vitae sapien ut libero venenatis faucibus. 😊')}
+                {getSectionContent('emotional_appeal', 'Please create a campaign to view Emotional Appeal')}
               </p>
             </div>
 
@@ -252,7 +478,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations }) => {
                 </div>
               </div>
               <p className="section-content">
-                {getSectionContent('call_to_action', 'Nulla facilisi morbi tempus iaculis urna id volutpat lacus laoreet non curabitur gravida arcu ac tortor dignissim convallis aenean et tortor at risus viverra adipiscing at in tellus. 🎯')}
+                {getSectionContent('call_to_action', 'Please create a campaign to view Call to Action')}
               </p>
             </div>
           </>
