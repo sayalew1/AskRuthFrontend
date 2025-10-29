@@ -80,6 +80,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const [showAllFacts, setShowAllFacts] = React.useState(false);
   const [campaignResponse, setCampaignResponse] = React.useState<any>(null);
   const [isCreatingCampaign, setIsCreatingCampaign] = React.useState(false);
+  const [showComingSoon, setShowComingSoon] = React.useState(false);
+  const [comingSoonType, setComingSoonType] = React.useState<'social' | 'goal' | null>(null);
   const [lastCampaignSettings, setLastCampaignSettings] = React.useState<{
     socialChannel: number;
     actionButton: number;
@@ -336,7 +338,14 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   // Set default selections based on API chips data
   useEffect(() => {
-    if (storyData?.chips?.selected) {
+    // STORY MODE: Force selections to "text" (index 0) and "spread-the-word" (index 0)
+    // Only voice selection can be changed by the user
+    if (currentStoryId !== null && currentStoryId !== undefined) {
+      setActiveSocialChannel(0); // "Plain Text"
+      setActiveActionButton(0); // "Spread the Word"
+      // Voice can be any selection, so we don't force it here
+    } else if (storyData?.chips?.selected) {
+      // URL MODE: Use chips data if available
       const { channels, goals, voices } = storyData.chips.selected;
 
       // Set default channel selection (use first selected channel or 0)
@@ -369,7 +378,7 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       setActiveActionButton(0);
       setActiveCharacteristic(0);
     }
-  }, [storyData, campaignFilters]);
+  }, [storyData, campaignFilters, currentStoryId]);
 
   // Default buttons (fallback when no chips data available)
   const defaultSocialChannels = [
@@ -689,6 +698,21 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       return;
     }
 
+    // Check if clicking on a non-"Plain Text" button (index 0)
+    if (displayIndex !== 0) {
+      // Select the clicked button first
+      setActiveSocialChannel(displayIndex);
+      // Show "Coming Soon" message for 1 second, then select Plain Text
+      setShowComingSoon(true);
+      setComingSoonType('social');
+      setTimeout(() => {
+        setShowComingSoon(false);
+        setComingSoonType(null);
+        setActiveSocialChannel(0); // Select Plain Text
+      }, 1000);
+      return;
+    }
+
     setActiveSocialChannel(displayIndex);
 
     // Look for a campaign for this new combination
@@ -767,6 +791,21 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
   const handleActionButtonClick = (displayIndex: number) => {
     // If we're currently restoring settings, don't process the click
     if (isRestoringSettingsRef.current) {
+      return;
+    }
+
+    // Check if clicking on a non-"Spread the Word" button (index 0)
+    if (displayIndex !== 0) {
+      // Select the clicked button first
+      setActiveActionButton(displayIndex);
+      // Show "Coming Soon" message for 1 second, then select Spread the Word
+      setShowComingSoon(true);
+      setComingSoonType('goal');
+      setTimeout(() => {
+        setShowComingSoon(false);
+        setComingSoonType(null);
+        setActiveActionButton(0); // Select Spread the Word
+      }, 1000);
       return;
     }
 
@@ -1561,14 +1600,20 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               </button>
             ))}
           </div>
-          {activeSocialChannel !== null && activeSocialChannel >= 0 && socialChannels[activeSocialChannel]?.description && (
-            <div className="social-description">
-              {socialChannels[activeSocialChannel].description}
+          {showComingSoon && comingSoonType === 'social' ? (
+            <div className="coming-soon-message">
+              Coming Soon
             </div>
+          ) : (
+            activeSocialChannel !== null && activeSocialChannel >= 0 && socialChannels[activeSocialChannel]?.description && (
+              <div className="social-description">
+                {socialChannels[activeSocialChannel].description}
+              </div>
+            )
           )}
         </div>
 
-        <div className="goal-section">
+          <div className="goal-section">
           <h3>Goal</h3>
           <div className="goal-buttons">
             {actionButtons.map((button, index) => (
@@ -1581,10 +1626,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               </button>
             ))}
           </div>
-          {activeActionButton !== null && activeActionButton >= 0 && actionButtons[activeActionButton]?.description && (
-            <div className="goal-description">
-              {actionButtons[activeActionButton].description}
+          {showComingSoon && comingSoonType === 'goal' ? (
+            <div className="coming-soon-message">
+              Coming Soon
             </div>
+          ) : (
+            activeActionButton !== null && activeActionButton >= 0 && actionButtons[activeActionButton]?.description && (
+              <div className="goal-description">
+                {actionButtons[activeActionButton].description}
+              </div>
+            )
           )}
         </div>
 

@@ -817,6 +817,33 @@
   padding: 0 16px;
 }
 
+/* Coming Soon message */
+.coming-soon-message {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.01em;
+  color: #93279C;
+  margin-top: 12px;
+  padding: 0 16px;
+  text-align: center;
+  animation: fadeInOut 1s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* Specific styling for Goal buttons to ensure they follow the correct properties */
 .goal-section .action-btn {
   background-color: transparent !important;

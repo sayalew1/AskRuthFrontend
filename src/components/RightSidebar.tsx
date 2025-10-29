@@ -111,24 +111,38 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, variationsForCo
       else if (campaignData?.matrix?.general_audience) {
         const generalAudience = campaignData.matrix.general_audience;
 
-        // Check if this combination exists in the campaign data
-        const content = generalAudience[channelCode]?.[goalSlug]?.[voiceSlug];
+        // STORY MODE: Only show campaign data for "text" + "spread-the-word" combination
+        // For any other combination, show default text
+        if (channelCode === 'text' && goalSlug === 'spread-the-word') {
+          // Check if this combination exists in the campaign data
+          const content = generalAudience[channelCode]?.[goalSlug]?.[voiceSlug];
 
-        if (content) {
-          setSelectedSocialChannel(channelCode);
-          setSelectedGoal(goalSlug);
-          setSelectedVoice(voiceSlug);
-          setCampaignContent(content);
-          // Reset section indices when new content is loaded
-          setSectionIndices({
-            opening_paragraph: 0,
-            core_message: 0,
-            supporting_evidence: 0,
-            emotional_appeal: 0,
-            call_to_action: 0
-          });
+          if (content) {
+            setSelectedSocialChannel(channelCode);
+            setSelectedGoal(goalSlug);
+            setSelectedVoice(voiceSlug);
+            setCampaignContent(content);
+            // Reset section indices when new content is loaded
+            setSectionIndices({
+              opening_paragraph: 0,
+              core_message: 0,
+              supporting_evidence: 0,
+              emotional_appeal: 0,
+              call_to_action: 0
+            });
+          } else {
+            // If combination doesn't exist, show default values
+            setCampaignContent(null);
+            setSectionIndices({
+              opening_paragraph: 0,
+              core_message: 0,
+              supporting_evidence: 0,
+              emotional_appeal: 0,
+              call_to_action: 0
+            });
+          }
         } else {
-          // If combination doesn't exist, show default values
+          // Different social media or goal selected - show default text
           setCampaignContent(null);
           setSectionIndices({
             opening_paragraph: 0,
