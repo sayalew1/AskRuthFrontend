@@ -704,6 +704,7 @@
   vertical-align: middle;
   box-sizing: border-box;
   white-space: nowrap;
+  font-size: 14px;
 }
 
 /* Hover removed */
@@ -770,6 +771,7 @@
   vertical-align: middle;
   box-sizing: border-box;
   white-space: nowrap;
+  font-size: 14px;
 }
 
 .goal-btn.active {
@@ -849,9 +851,10 @@
 }
 
 .characteristic-tag {
-  width: 94px;
+  width: auto;
+  min-width: 100px;
   height: 24px;
-  padding: 4px 12px;
+  padding: 4px 16px;
   background-color: transparent;
   color: #4C433B;
   font-family: 'Poppins', sans-serif;
@@ -879,9 +882,10 @@
 /* Hover removed */
 
 .characteristic-tag.active {
-  width: 92px;
+  width: auto;
+  min-width: 100px;
   height: 24px;
-  padding: 4px 12px;
+  padding: 4px 16px;
   border: 1px solid #6C6051;
   background-color: #6C6051;
   color: #E7E6DE;
@@ -907,7 +911,7 @@
 .campaign-section-layout {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   width: 100%;
   gap: 20px;
   min-height: 44px; /* Ensure consistent height */

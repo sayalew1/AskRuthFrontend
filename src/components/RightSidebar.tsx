@@ -55,15 +55,15 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, variationsForCo
     if (variations) {
       // If we have variations (from generated campaigns), always show them
       setCampaignContent(variations);
-    } else if (campaignData?.matrix?.charismatic) {
+    } else if (campaignData?.matrix?.general_audience) {
       // Fall back to campaignData.matrix if no variations
-      const charismatic = campaignData.matrix.charismatic;
+      const generalAudience = campaignData.matrix.general_audience;
       const defaultChannel = 'text';
       const defaultGoal = 'spread-the-word';
       const defaultVoice = 'charismatic';
 
       // Set the default campaign content
-      const content = charismatic[defaultChannel]?.[defaultGoal]?.[defaultVoice];
+      const content = generalAudience[defaultChannel]?.[defaultGoal]?.[defaultVoice];
       if (content) {
         setSelectedSocialChannel(defaultChannel);
         setSelectedGoal(defaultGoal);
@@ -108,11 +108,11 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, variationsForCo
         }
       }
       // PRIORITY 2: If no variations, check campaignData.matrix (Story mode)
-      else if (campaignData?.matrix?.charismatic) {
-        const charismatic = campaignData.matrix.charismatic;
+      else if (campaignData?.matrix?.general_audience) {
+        const generalAudience = campaignData.matrix.general_audience;
 
         // Check if this combination exists in the campaign data
-        const content = charismatic[channelCode]?.[goalSlug]?.[voiceSlug];
+        const content = generalAudience[channelCode]?.[goalSlug]?.[voiceSlug];
 
         if (content) {
           setSelectedSocialChannel(channelCode);

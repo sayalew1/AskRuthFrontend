@@ -64,7 +64,7 @@ interface StoryData {
 
 interface CampaignData {
   matrix: {
-    charismatic: {
+    general_audience: {
       [socialMediaChannel: string]: {
         [goal: string]: {
           [voice: string]: {

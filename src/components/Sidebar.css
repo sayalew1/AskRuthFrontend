@@ -183,7 +183,7 @@
 .campaigns {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
   flex: 1;
   max-height: calc(100vh - 200px);
   overflow-y: auto;
@@ -213,7 +213,7 @@
 .campaign-card {
   background-color: white;
   border-radius: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   border: 1px solid #e5e7eb;
   overflow: hidden;
   transition: all 0.2s;
@@ -223,33 +223,34 @@
   height: auto;
   opacity: 1;
   position: relative;
+  margin: 0;
 }
 
 @media (max-width: 1200px) {
   .campaign-card {
     height: 140px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 }
 
 @media (max-width: 1024px) {
   .campaign-card {
     height: 130px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 }
 
 @media (max-width: 768px) {
   .campaign-card {
     height: 120px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
   }
 }
 
 @media (max-width: 480px) {
   .campaign-card {
     height: 100px;
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
 }
 
@@ -568,7 +569,7 @@
 
   .campaign-card {
     height: 80px;
-    margin-bottom: 6px;
+    margin-bottom: 0;
   }
 
   .small-campaign-image {
