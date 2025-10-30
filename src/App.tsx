@@ -325,6 +325,28 @@ function App() {
     setTimeout(() => setGoButtonClicked(false), 100);
   };
 
+  const handleHoroscopeClick = () => {
+    // Clear all story-related data when horoscope is clicked
+    setCurrentStoryId(null);
+    setStoryData(null);
+    setStoryTitle('');
+    setStoryFacts([]);
+    setChunkFacts([]);
+    setChunkFactsData(null);
+    setChunkFactsReady(false);
+    setCampaignData(null);
+    setStoryVariations(null);
+    setStoryVariationsForCombination(null);
+    setStorySelectedButtons(null);
+
+    // Clear all URL-related data when horoscope is clicked
+    setCurrentUrl('');
+    setSearchText('');
+    setUrlVariations(null);
+    setUrlVariationsForCombination(null);
+    setUrlSelectedButtons(null);
+  };
+
   // Fetch campaign filters on component mount
   React.useEffect(() => {
     const fetchCampaignFilters = async () => {
@@ -527,7 +549,7 @@ function App() {
         urlDataCache={urlDataCache}
       />
       <div className="app-body">
-        <Sidebar onStoryCardClick={handleStoryCardClick} resetSelection={goButtonClicked || shouldResetSidebarSelection} />
+        <Sidebar onStoryCardClick={handleStoryCardClick} onHoroscopeClick={handleHoroscopeClick} resetSelection={goButtonClicked || shouldResetSidebarSelection} />
         <MainContent
           storyFacts={storyFacts}
           chunkFacts={chunkFacts}
