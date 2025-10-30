@@ -413,8 +413,9 @@ function App() {
     setIsLoadingStory(true);
     setCurrentStoryId(storyId);
 
-    // Clear search bar when story is clicked
+    // Clear search bar and URL when story is clicked
     setSearchText('');
+    setCurrentUrl(''); // Unselect any URL in the dropdown
 
     // Check if data is already cached
     const isStoryDataCached = storyDataCache[storyId] !== undefined;
