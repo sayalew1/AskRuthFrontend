@@ -123,6 +123,15 @@ function App() {
     prevStoryIdRef.current = currentStoryId;
   }, [currentStoryId]);
 
+  // When switching to story mode, update the campaign data for the currently selected button combination
+  React.useEffect(() => {
+    if (currentStoryId !== null && storySelectedButtons && campaignDataCache[currentStoryId]) {
+      // We're in story mode with a story selected and campaign data cached
+      // Update the campaign data to show the data for the currently selected button combination
+      setCampaignData(campaignDataCache[currentStoryId]);
+    }
+  }, [currentStoryId, storySelectedButtons, campaignDataCache]);
+
   // Track campaign history per URL (lifted from MainContent)
   const [urlCampaignHistory, setUrlCampaignHistory] = useState<{
     [url: string]: {

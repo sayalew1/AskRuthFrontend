@@ -199,6 +199,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
               // For story mode, we don't call onStoryVariationsGenerated(null)
             }
 
+            // Notify parent of the restored button selection so campaign data is displayed
+            if (onButtonSelectionChange) {
+              const channelCode = socialChannels[latestEntry.settings.socialChannel]?.code;
+              const goalSlug = actionButtons[latestEntry.settings.actionButton]?.slug;
+              const voiceSlug = characteristicTags[latestEntry.settings.characteristic]?.slug;
+              if (channelCode && goalSlug && voiceSlug) {
+                onButtonSelectionChange(channelCode, goalSlug, voiceSlug);
+              }
+            }
+
             // Mark as not a new session since we have history
             setIsNewStorySession(false);
           }
@@ -210,6 +220,16 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           setIsNewStorySession(true);
 
           // For story mode, don't clear variations - let RightSidebar show default state
+
+          // Notify parent of the current button selection so campaign data is displayed
+          if (onButtonSelectionChange) {
+            const channelCode = socialChannels[activeSocialChannel]?.code;
+            const goalSlug = actionButtons[activeActionButton]?.slug;
+            const voiceSlug = characteristicTags[activeCharacteristic]?.slug;
+            if (channelCode && goalSlug && voiceSlug) {
+              onButtonSelectionChange(channelCode, goalSlug, voiceSlug);
+            }
+          }
         }
       }
       // Update the ref to track current story
@@ -222,9 +242,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
       setShowUndoRedo(false);
       setLastCampaignSettings(null);
       setIsNewUrlSession(true);
-      setActiveSocialChannel(0);
-      setActiveActionButton(0);
-      setActiveCharacteristic(0);
+      // DON'T reset buttons here - keep the current button selection from URL mode
+      // The buttons will be restored by the URL restoration effect
 
       // Update the ref to track that we're no longer on a story
       prevStoryIdRef.current = null;
@@ -338,12 +357,11 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
 
   // Set default selections based on API chips data
   useEffect(() => {
-    // STORY MODE: Force selections to "text" (index 0) and "spread-the-word" (index 0)
-    // Only voice selection can be changed by the user
+    // STORY MODE: Keep the current button selections (don't force to defaults)
+    // This allows buttons selected in URL mode to persist when switching to story mode
     if (currentStoryId !== null && currentStoryId !== undefined) {
-      setActiveSocialChannel(0); // "Plain Text"
-      setActiveActionButton(0); // "Spread the Word"
-      // Voice can be any selection, so we don't force it here
+      // In story mode, keep the current button selections
+      // Don't force to defaults - let the user's selection persist
     } else if (storyData?.chips?.selected) {
       // URL MODE: Use chips data if available
       const { channels, goals, voices } = storyData.chips.selected;
