@@ -123,6 +123,15 @@ function App() {
     prevStoryIdRef.current = currentStoryId;
   }, [currentStoryId]);
 
+  // When switching to story mode, update the campaign data for the currently selected button combination
+  React.useEffect(() => {
+    if (currentStoryId !== null && storySelectedButtons && campaignDataCache[currentStoryId]) {
+      // We're in story mode with a story selected and campaign data cached
+      // Update the campaign data to show the data for the currently selected button combination
+      setCampaignData(campaignDataCache[currentStoryId]);
+    }
+  }, [currentStoryId, storySelectedButtons, campaignDataCache]);
+
   // Track campaign history per URL (lifted from MainContent)
   const [urlCampaignHistory, setUrlCampaignHistory] = useState<{
     [url: string]: {
@@ -325,6 +334,28 @@ function App() {
     setTimeout(() => setGoButtonClicked(false), 100);
   };
 
+  const handleHoroscopeClick = () => {
+    // Clear all story-related data when horoscope is clicked
+    setCurrentStoryId(null);
+    setStoryData(null);
+    setStoryTitle('');
+    setStoryFacts([]);
+    setChunkFacts([]);
+    setChunkFactsData(null);
+    setChunkFactsReady(false);
+    setCampaignData(null);
+    setStoryVariations(null);
+    setStoryVariationsForCombination(null);
+    setStorySelectedButtons(null);
+
+    // Clear all URL-related data when horoscope is clicked
+    setCurrentUrl('');
+    setSearchText('');
+    setUrlVariations(null);
+    setUrlVariationsForCombination(null);
+    setUrlSelectedButtons(null);
+  };
+
   // Fetch campaign filters on component mount
   React.useEffect(() => {
     const fetchCampaignFilters = async () => {
@@ -391,8 +422,9 @@ function App() {
     setIsLoadingStory(true);
     setCurrentStoryId(storyId);
 
-    // Clear search bar when story is clicked
+    // Clear search bar and URL when story is clicked
     setSearchText('');
+    setCurrentUrl(''); // Unselect any URL in the dropdown
 
     // Check if data is already cached
     const isStoryDataCached = storyDataCache[storyId] !== undefined;
@@ -527,7 +559,7 @@ function App() {
         urlDataCache={urlDataCache}
       />
       <div className="app-body">
-        <Sidebar onStoryCardClick={handleStoryCardClick} resetSelection={goButtonClicked || shouldResetSidebarSelection} />
+        <Sidebar onStoryCardClick={handleStoryCardClick} onHoroscopeClick={handleHoroscopeClick} resetSelection={goButtonClicked || shouldResetSidebarSelection} />
         <MainContent
           storyFacts={storyFacts}
           chunkFacts={chunkFacts}

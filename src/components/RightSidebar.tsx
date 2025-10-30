@@ -103,8 +103,32 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ variations, variationsForCo
             call_to_action: 0
           });
         } else {
-          // Different combination selected, clear content
-          setCampaignContent(null);
+          // Different combination selected - check if there's campaign data for this combination
+          if (campaignData?.matrix?.general_audience) {
+            const generalAudience = campaignData.matrix.general_audience;
+            const content = generalAudience[channelCode]?.[goalSlug]?.[voiceSlug];
+
+            if (content) {
+              // Show campaign data for this combination
+              setSelectedSocialChannel(channelCode);
+              setSelectedGoal(goalSlug);
+              setSelectedVoice(voiceSlug);
+              setCampaignContent(content);
+              setSectionIndices({
+                opening_paragraph: 0,
+                core_message: 0,
+                supporting_evidence: 0,
+                emotional_appeal: 0,
+                call_to_action: 0
+              });
+            } else {
+              // No campaign data for this combination
+              setCampaignContent(null);
+            }
+          } else {
+            // No campaign data available, clear content
+            setCampaignContent(null);
+          }
         }
       }
       // PRIORITY 2: If no variations, check campaignData.matrix (Story mode)

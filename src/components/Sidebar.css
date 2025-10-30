@@ -190,6 +190,7 @@
   overflow-x: hidden;
   padding-right: 8px;
   min-height: 300px;
+  margin-top: 20px;
 }
 
 /* Custom scrollbar styling for campaigns */
@@ -260,6 +261,120 @@
 
 .large-card {
   padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.large-card:hover {
+  box-shadow: none;
+}
+
+/* Horoscope Card Styles */
+.horoscope-card {
+  background-color: transparent;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: none;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.horoscope-card:hover {
+  box-shadow: none;
+}
+
+.horoscope-card.active {
+  background-color: #D9D8CB;
+}
+
+.horoscope-card.active .horoscope-header {
+  background-color: #D9D8CB;
+}
+
+.horoscope-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: transparent;
+}
+
+.horoscope-icon {
+  width: 32px;
+  height: 32px;
+  background-color: #4a90e2;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.horoscope-title {
+  flex: 1;
+}
+
+.horoscope-title h4 {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #4C433B;
+  line-height: 1.2;
+}
+
+.horoscope-title p {
+  margin: 2px 0 0 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.horoscope-share-btn {
+  background-color: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.horoscope-share-btn:hover {
+  transform: scale(1.1);
+}
+
+.horoscope-image-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background-color: transparent;
+}
+
+.horoscope-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0 0 12px 12px;
+}
+
+.campaign-date {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
 }
 
 .small-card {

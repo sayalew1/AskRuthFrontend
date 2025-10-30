@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Sidebar.css';
 import shareButtonIcon from '../assets/shareButton.png';
+import horoscopeImg from '../assets/horoscope.png';
 import CorruptionImg from '../assets/categories/Corruption.jpg';
 import EconomyImg from '../assets/categories/Economy.jpg';
 import ImmigrationImg from '../assets/categories/Immigration.jpg';
@@ -55,15 +56,17 @@ interface ApiResponse {
 
 interface SidebarProps {
   onStoryCardClick?: (storyId: number) => void;
+  onHoroscopeClick?: () => void;
   resetSelection?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick, resetSelection }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick, onHoroscopeClick, resetSelection }) => {
   const [activeCategory, setActiveCategory] = useState(0);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
+  const [selectedHoroscope, setSelectedHoroscope] = useState<boolean>(false);
 
   // Fetch campaigns from API
   useEffect(() => {
@@ -86,12 +89,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick, resetSelection }) =
     };
 
     fetchCampaigns();
+    // Select horoscope by default on initial load
+    setSelectedHoroscope(true);
   }, []);
 
   // Reset selected campaign when resetSelection prop changes
   useEffect(() => {
     if (resetSelection) {
       setSelectedCampaignId(null);
+      setSelectedHoroscope(false);
     }
   }, [resetSelection]);
 
@@ -177,8 +183,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick, resetSelection }) =
 
   const handleCampaignCardClick = (campaignId: number, title?: string) => {
     setSelectedCampaignId(campaignId);
+    setSelectedHoroscope(false);
     if (onStoryCardClick) {
       onStoryCardClick(campaignId, title);
+    }
+  };
+
+  const handleHoroscopeClick = () => {
+    setSelectedHoroscope(!selectedHoroscope);
+    setSelectedCampaignId(null);
+    if (onHoroscopeClick) {
+      onHoroscopeClick();
     }
   };
 
@@ -229,23 +244,30 @@ const Sidebar: React.FC<SidebarProps> = ({ onStoryCardClick, resetSelection }) =
 
       {/* US Horoscope - Only shown when "All" category is selected - NOT scrollable */}
       {activeCategory === 0 && (
-        <div className="campaign-card large-card">
-          <div className="large-campaign">
-            <div className="campaign-header">
-              <div className="campaign-icon" style={{ backgroundColor: '#4a90e2' }}>
-                <span>🇺🇸</span>
-              </div>
-              <div className="campaign-info">
-                <h4>US Horoscope</h4>
-                <p>National Political Climate</p>
-              </div>
+        <div
+          className={`campaign-card horoscope-card ${selectedHoroscope ? 'active' : ''}`}
+          onClick={handleHoroscopeClick}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="horoscope-header">
+            <div className="horoscope-icon">
+              <span>♋</span>
             </div>
-            <div className="campaign-description">
-              <p>Stay informed about the current political climate and key issues affecting the nation.</p>
+            <div className="horoscope-title">
+              <h4>United States Horoscope</h4>
+              <p>{new Date().toLocaleDateString()}</p>
             </div>
-            <div className="campaign-date">
-              <span>{new Date().toLocaleDateString()}</span>
-            </div>
+            <button
+              className="horoscope-share-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              <img src={shareButtonIcon} alt="Share" style={{width: '14px', height: '14px'}} />
+            </button>
+          </div>
+          <div className="horoscope-image-container">
+            <img src={horoscopeImg} alt="US Horoscope" className="horoscope-image" />
           </div>
         </div>
       )}
