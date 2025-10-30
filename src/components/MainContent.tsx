@@ -316,10 +316,8 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           setShowUndoRedo(false);
           setLastCampaignSettings(null);
 
-          // Reset selections to default values for fresh URL
-          setActiveSocialChannel(0);
-          setActiveActionButton(0);
-          setActiveCharacteristic(0);
+          // Don't reset buttons when clicking GO - preserve the current button selection
+          // The user's button selection should persist across URL changes
 
           if (onVariationsGenerated) {
             onVariationsGenerated(null);
@@ -390,15 +388,9 @@ const MainContent: React.FC<MainContentProps> = ({ storyFacts, chunkFacts, chunk
           setActiveCharacteristic(voiceIndex);
         }
       }
-    } else if (currentStoryId === null || currentStoryId === undefined) {
-      // URL MODE: Only reset to defaults if we're not currently restoring settings from history
-      // If we're restoring, don't reset - let the restoration effect set the buttons
-      if (!isRestoringSettingsRef.current) {
-        setActiveSocialChannel(0);
-        setActiveActionButton(0);
-        setActiveCharacteristic(0);
-      }
     }
+    // Don't reset buttons to defaults when switching from story to URL mode
+    // Preserve the user's button selection across mode switches
   }, [storyData, campaignFilters, currentStoryId]);
 
   // Default buttons (fallback when no chips data available)
